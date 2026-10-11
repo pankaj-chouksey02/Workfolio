@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fontsource/material-symbols-outlined": "^5.3.9",
+    "@hookform/resolvers": "^5.9.1",
+    "axios": "^1.20.0",
+    "lucide-react": "^1.55.0",
     "next": "16.4.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-hook-form": "^7.90.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
