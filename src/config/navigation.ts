@@ -1,7 +1,7 @@
 export const marketingNav = [
   { title: 'Explore Creators', href: '/discover' },
-  { title: 'Disciplines', href: '/collections' },
-  { title: 'Atelier Studio', href: '/studio' },
+  { title: 'Disciplines', href: '/disciplines' },
+  { title: 'Commissions', href: '/commissions' },
   { title: 'About', href: '/about' },
 ];
 
