@@ -51,7 +51,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               <span className="font-mono text-[10px] uppercase text-[#716E68] tracking-widest block">Explore</span>
               <ul className="space-y-2 font-sans text-xs">
                 <li><Link href="/" className="text-[#56423d] hover:text-[#141413] transition-colors">Featured Masters</Link></li>
-                <li><Link href="/studio/commissions" className="text-[#56423d] hover:text-[#141413] transition-colors">Open Commissions</Link></li>
+                <li><Link href="/commissions" className="text-[#56423d] hover:text-[#141413] transition-colors">Open Commissions</Link></li>
                 <li><Link href="/studio/collections" className="text-[#56423d] hover:text-[#141413] transition-colors">Digital Pavilions</Link></li>
                 <li><Link href="/discover" className="text-[#56423d] hover:text-[#141413] transition-colors">Curatorial Notes</Link></li>
               </ul>
@@ -59,10 +59,10 @@ export default function Footer({ onNavigate }: FooterProps) {
             <div className="flex flex-col space-y-3">
               <span className="font-mono text-[10px] uppercase text-[#716E68] tracking-widest block">Disciplines</span>
               <ul className="space-y-2 font-sans text-xs">
-                <li><Link href="/studio/artworks" className="text-[#56423d] hover:text-[#141413] transition-colors">Ceramics & Stoneware</Link></li>
-                <li><Link href="/studio/artworks" className="text-[#56423d] hover:text-[#141413] transition-colors">Sculpture & Bronze</Link></li>
-                <li><Link href="/studio/artworks" className="text-[#56423d] hover:text-[#141413] transition-colors">Oil & Linen</Link></li>
-                <li><Link href="/studio/artworks" className="text-[#56423d] hover:text-[#141413] transition-colors">Printmaking & Etching</Link></li>
+                <li><Link href="/disciplines" className="text-[#56423d] hover:text-[#141413] transition-colors">Ceramics & Stoneware</Link></li>
+                <li><Link href="/disciplines" className="text-[#56423d] hover:text-[#141413] transition-colors">Sculpture & Bronze</Link></li>
+                <li><Link href="/disciplines" className="text-[#56423d] hover:text-[#141413] transition-colors">Oil & Linen</Link></li>
+                <li><Link href="/disciplines" className="text-[#56423d] hover:text-[#141413] transition-colors">Printmaking & Etching</Link></li>
               </ul>
             </div>
             <div className="flex flex-col space-y-3">

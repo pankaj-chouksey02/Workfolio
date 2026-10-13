@@ -2,13 +2,28 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
   currentPath?: string;
   onNavigate?: (path: string) => void;
 }
 
-export default function Header({ currentPath = 'home', onNavigate }: HeaderProps) {
+const PRIMARY_NAV = [
+  { label: 'Explore Creators', href: '/discover' },
+  { label: 'Disciplines', href: '/disciplines' },
+  { label: 'Commissions', href: '/commissions' },
+  { label: 'About', href: '/about' },
+];
+
+export default function Header({ currentPath }: HeaderProps) {
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === '/'
+      ? currentPath === 'home'
+      : pathname === href || pathname?.startsWith(`${href}/`);
+
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E7E4DF]">
       <div className="h-20 w-full max-w-[1440px] mx-auto px-5 md:px-12 lg:px-16 flex items-center justify-between">
@@ -25,30 +40,16 @@ export default function Header({ currentPath = 'home', onNavigate }: HeaderProps
         </div>
 
         <nav className="hidden md:flex items-center gap-8">
-          <Link 
-            href="/discover"
-            className={`font-sans text-xs uppercase tracking-wider transition-colors cursor-pointer ${currentPath === 'discover' ? 'text-[#141413] font-semibold' : 'text-[#56423d] hover:text-[#141413]'}`}
-          >
-            Explore Creators
-          </Link>
-          <Link 
-            href="/studio/collections"
-            className="font-sans text-xs uppercase tracking-wider text-[#56423d] hover:text-[#141413] transition-colors cursor-pointer"
-          >
-            Disciplines
-          </Link>
-          <Link 
-            href="/studio/commissions"
-            className="font-sans text-xs uppercase tracking-wider text-[#56423d] hover:text-[#141413] transition-colors cursor-pointer"
-          >
-            Commissions
-          </Link>
-          <Link 
-            href="/studio/customize"
-            className="font-sans text-xs uppercase tracking-wider text-[#56423d] hover:text-[#141413] transition-colors cursor-pointer"
-          >
-            About
-          </Link>
+          {PRIMARY_NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              className={`font-sans text-xs uppercase tracking-wider transition-colors cursor-pointer ${isActive(item.href) ? 'text-[#141413] font-semibold' : 'text-[#56423d] hover:text-[#141413]'}`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-4">
