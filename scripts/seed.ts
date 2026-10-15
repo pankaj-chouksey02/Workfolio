@@ -3,6 +3,10 @@ import { User } from '@/models/User';
 import { Artwork } from '@/models/Artwork';
 import { Collection } from '@/models/Collection';
 
+const UserModel: any = User;
+const ArtworkModel: any = Artwork;
+const CollectionModel: any = Collection;
+
 async function seed() {
   console.log('🌱 Seeding database...');
 
@@ -11,14 +15,14 @@ async function seed() {
 
     // Clean existing seed records if in development
     if (process.env.NODE_ENV !== 'production') {
-      await User.deleteMany({ email: 'elena@workfolio.art' });
-      await Artwork.deleteMany({ 'creator.username': 'elenavance' });
-      await Collection.deleteMany({ 'creator.username': 'elenavance' });
+      await UserModel.deleteMany({ email: 'elena@workfolio.art' });
+      await ArtworkModel.deleteMany({ 'creator.username': 'elenavance' });
+      await CollectionModel.deleteMany({ 'creator.username': 'elenavance' });
       console.log('🧹 Purged test seed data.');
     }
 
     // 1. Create Default Artist
-    const artist = await User.create({
+    const artist: any = await UserModel.create({
       name: 'Elena Vance',
       username: 'elenavance',
       email: 'elena@workfolio.art',
@@ -38,7 +42,7 @@ async function seed() {
     console.log(`✅ Seeded Artist: ${artist.name} (@${artist.username})`);
 
     // 2. Create Artworks
-    const artworks = await Artwork.create([
+    const artworks: any[] = await ArtworkModel.create([
       {
         title: 'Vessel of Ash & Quartz',
         slug: 'vessel-of-ash-and-quartz',
@@ -94,7 +98,7 @@ async function seed() {
     console.log(`✅ Seeded ${artworks.length} Artworks`);
 
     // 3. Create Collection
-    await Collection.create({
+    await CollectionModel.create({
       title: 'Lithic Resonances',
       slug: 'lithic-resonances',
       description: 'A study of tectonic forms, earthen patinas, and mineral decay.',

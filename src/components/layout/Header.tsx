@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
   currentPath?: string;
@@ -17,7 +16,7 @@ const PRIMARY_NAV = [
 ];
 
 export default function Header({ currentPath }: HeaderProps) {
-  const pathname = usePathname();
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : null;
 
   const isActive = (href: string) =>
     href === '/'

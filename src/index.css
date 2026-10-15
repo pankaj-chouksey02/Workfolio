@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+/* Ensure smooth scrolling and visible scrollbars for preview viewports */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(220, 216, 208, 0.4);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(40, 39, 36, 0.4);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(40, 39, 36, 0.75);
+    background-clip: content-box;
+}
+
+/* Custom smooth canvas scrolling */
+.preview-scroll-canvas {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.preview-scroll-canvas::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.preview-scroll-canvas::-webkit-scrollbar-thumb {
+    background: rgba(20, 20, 19, 0.5);
+    border-radius: 5px;
+}
+
+.preview-viewport-window {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}

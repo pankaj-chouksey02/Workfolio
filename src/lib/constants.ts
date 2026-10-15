@@ -4,6 +4,7 @@ export const APP_TAGLINE = 'Museum-grade portfolio and commerce platform for con
 export const STUDIO_NAV_ITEMS = [
   { label: 'Studio Overview', path: '/studio', icon: 'grid_view' },
   { label: 'Portfolio Customizer', path: '/studio/customize', icon: 'auto_stories' },
+  { label: 'Profile Customizer', path: '/studio/profile', icon: 'person' },
   { label: 'Artworks', path: '/studio/artworks', icon: 'palette' },
   { label: 'Collections', path: '/studio/collections', icon: 'folder_special' },
   { label: 'Products & Editions', path: '/studio/products', icon: 'sell' },

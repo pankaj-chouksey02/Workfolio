@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from './Header';
 import Footer from './Footer';
@@ -11,7 +11,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export default function AppShell({ children }: AppShellProps) {
+function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
   const isStudio = pathname?.startsWith('/studio');
 
@@ -31,5 +31,21 @@ export default function AppShell({ children }: AppShellProps) {
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
+  );
+}
+
+export default function AppShell({ children }: AppShellProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
+      }
+    >
+      <AppShellContent>{children}</AppShellContent>
+    </Suspense>
   );
 }

@@ -10,10 +10,11 @@ export async function GET() {
       database: isDbConnected ? 'connected' : 'disconnected (mock mode)',
       timestamp: new Date().toISOString(),
     });
-  } catch (err: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({
       status: 'degraded',
-      error: err.message,
+      error: message,
       timestamp: new Date().toISOString(),
     }, { status: 500 });
   }
