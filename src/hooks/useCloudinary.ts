@@ -19,13 +19,14 @@ export function useCloudinary() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean; error?: string; media?: unknown };
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Cloudinary upload failed');
       }
       return data.media;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Cloudinary upload failed';
+      setError(message);
       throw err;
     } finally {
       setIsUploading(false);

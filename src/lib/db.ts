@@ -4,8 +4,8 @@
  */
 
 type MongoConnection = {
-  conn: any | null;
-  promise: Promise<any> | null;
+  conn: unknown | null;
+  promise: Promise<unknown> | null;
 };
 
 declare global {
@@ -39,7 +39,7 @@ export async function connectToDatabase() {
       .then((mongoose) => {
         return mongoose.default.connect(MONGODB_URI, opts).then((m) => m);
       })
-      .catch((err) => {
+      .catch(() => {
         console.warn('Mongoose package not installed yet. Please run: npm install mongoose');
         return null;
       });
@@ -47,9 +47,9 @@ export async function connectToDatabase() {
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (error) {
     cached.promise = null;
-    throw e;
+    throw error;
   }
 
   return cached.conn;

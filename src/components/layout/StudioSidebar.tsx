@@ -57,6 +57,7 @@ export default function StudioSidebar({ currentPath, onNavigate }: StudioSidebar
                 <Link
                   key={item.path}
                   href={item.path}
+                  onClick={() => onNavigate?.(item.path)}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer text-left ${
                     active ? 'bg-[#141413] text-white font-semibold' : 'text-[#56423d] hover:bg-[#eae8e5] hover:text-[#1b1c1a]'
                   }`}
@@ -81,6 +82,7 @@ export default function StudioSidebar({ currentPath, onNavigate }: StudioSidebar
                 <Link
                   key={item.path}
                   href={item.path}
+                  onClick={() => onNavigate?.(item.path)}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer text-left ${
                     active ? 'bg-[#141413] text-white font-semibold' : 'text-[#56423d] hover:bg-[#eae8e5] hover:text-[#1b1c1a]'
                   }`}

@@ -17,10 +17,11 @@ export async function POST(req: NextRequest) {
       success: true,
       media: uploadResult,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Media ingestion failed';
     return NextResponse.json({
       success: false,
-      error: error.message || 'Media ingestion failed',
+      error: message,
     }, { status: 500 });
   }
 }

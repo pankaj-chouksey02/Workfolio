@@ -40,13 +40,13 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
 
             {/* Main Display Headline */}
             <h1 className="font-serif text-5xl sm:text-6xl text-[#141413] tracking-tight leading-[1.08] max-w-2xl">
-              Upload your art.<br />
-              <span className="italic font-normal text-[#56423d]">We’ll make it look</span> beautiful.
+              Your talent<br />
+              <span className="italic font-normal text-[#56423d]">deserves</span> its own space.
             </h1>
 
             {/* Subheadline */}
             <p className="font-sans text-lg text-[#5f5e5d] max-w-xl font-normal leading-relaxed pt-1">
-              Curated digital ateliers for fine artists, ceramicists, sculptors, and printmakers. Museum-grade portfolios, custom handles, and structured commission workflows without the clutter of generic website builders.
+              Build a beautiful portfolio that showcases your work, tells your story, and helps people discover what you do — all through one shareable link.
             </p>
 
             {/* Inline Handle Claim Widget */}
@@ -56,16 +56,16 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
                 <form onSubmit={handleClaimSubmit} className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0">
                   <div className="flex items-center bg-[#f5f3f0] px-4 py-3 flex-1 border border-[#E7E4DF]">
                     <span className="font-mono text-xs text-[#716E68] select-none pr-1">atelier.art/@</span>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={handle}
                       onChange={(e) => setHandle(e.target.value)}
-                      placeholder="yourname" 
-                      required 
+                      placeholder="yourname"
+                      required
                       className="w-full bg-transparent font-mono text-xs text-[#141413] placeholder:text-[#c9c6c4] focus:outline-none"
                     />
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     className="bg-[#141413] text-white font-sans text-xs uppercase tracking-wider px-6 py-3 hover:bg-[#C25E3E] transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer"
                   >
@@ -85,18 +85,18 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
 
             {/* Action CTAs & Metadata stats */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <a 
-                href="#demo-preview" 
+              <a
+                href="#demo-preview"
                 className="inline-flex items-center gap-2 font-sans text-xs uppercase tracking-wider bg-[#C25E3E] text-white px-6 py-3.5 hover:bg-[#141413] transition-colors duration-200 shadow-sm"
               >
                 <span>Explore Live Ateliers</span>
                 <span className="material-symbols-outlined text-[16px]">north_east</span>
               </a>
-              <button 
+              <button
                 onClick={() => onNavigate('studio-overview')}
                 className="inline-flex items-center gap-2 font-sans text-xs uppercase tracking-wider bg-[#141413] text-white px-6 py-3.5 hover:bg-[#C25E3E] transition-colors duration-200 shadow-sm"
               >
-                <span>Open Creator Studio (Elena Vance)</span>
+                <span>Create your portfolio</span>
                 <span className="material-symbols-outlined text-[16px]">dashboard</span>
               </button>
             </div>
@@ -129,9 +129,9 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
               {/* Artwork 1: Tectonic Vessel */}
               <div className="bg-white p-4 shadow-md group border border-[#E7E4DF]">
                 <div className="relative overflow-hidden aspect-[4/3] bg-[#efeeeb]">
-                  <img 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvGGogkcLt5eV-ajKx_woPMP6EMUR-AddtGdwdF7dXkIjGYnaBcfJTHX70NL92oBSvpBz9IZ3nh8MEsK8yOa-AV8F6KZXqEuG6p4kotSU4CoxBqZXTCx8VtS-1BsMm1n2A08XwzxdRj1PiJx-VQW2EYI7KYZ_xvv1Ap2JvdEmbaXqVEpddyyDiAvsJN52im_iGm_E_BCGqtuo2r1XPSShbgXigZ7fz0nApThu68KBpEXExIkgYA00j1Q" 
-                    alt="Tectonic Vessel No. 04" 
+                  <img
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvGGogkcLt5eV-ajKx_woPMP6EMUR-AddtGdwdF7dXkIjGYnaBcfJTHX70NL92oBSvpBz9IZ3nh8MEsK8yOa-AV8F6KZXqEuG6p4kotSU4CoxBqZXTCx8VtS-1BsMm1n2A08XwzxdRj1PiJx-VQW2EYI7KYZ_xvv1Ap2JvdEmbaXqVEpddyyDiAvsJN52im_iGm_E_BCGqtuo2r1XPSShbgXigZ7fz0nApThu68KBpEXExIkgYA00j1Q"
+                    alt="Tectonic Vessel No. 04"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
@@ -153,9 +153,9 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 -mt-2">
                 <div className="bg-white p-3 shadow-md group border border-[#E7E4DF]">
                   <div className="aspect-[3/4] bg-[#efeeeb] overflow-hidden">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8RYtNqL0dR6W8yb7CAlFBNB2wqaFpCj6BPSaYgKSf9tmzmfSVyxha3J0-88T7HT1fZIri1xKbOnGjZpInsgXUqHm95pqtuw8roOdiuKIkq7KHaoR4Lt5mshP_s8tRCUTaLqzuhO7d_S7dfdbE06AO__I8a2v4e1O1r57XSLKYKIxXatjV_W8FPk0daorJux8c0ovDTqu_J-pv60JP5qR4TgXYJw3DOYYtYHrFkUB7AH5R2zhmTnvJpw" 
-                      alt="Solitude at Dawn" 
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8RYtNqL0dR6W8yb7CAlFBNB2wqaFpCj6BPSaYgKSf9tmzmfSVyxha3J0-88T7HT1fZIri1xKbOnGjZpInsgXUqHm95pqtuw8roOdiuKIkq7KHaoR4Lt5mshP_s8tRCUTaLqzuhO7d_S7dfdbE06AO__I8a2v4e1O1r57XSLKYKIxXatjV_W8FPk0daorJux8c0ovDTqu_J-pv60JP5qR4TgXYJw3DOYYtYHrFkUB7AH5R2zhmTnvJpw"
+                      alt="Solitude at Dawn"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
@@ -169,9 +169,9 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
 
                 <div className="bg-white p-3 shadow-md group sm:translate-y-6 border border-[#E7E4DF]">
                   <div className="aspect-[3/4] bg-[#efeeeb] overflow-hidden">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKgBDzUGMPDHt9ebnUq6gCfj_lfFr7tTRq-QBx2viwxPnF5IqTvwSdw6j6QWV8wEHkAyoMs4GquGvMd-er5ar_iXpFz_u0zYY7cDlvj1U0kxp4z_m-LkiY9SAWr5v3g-O-Ezcac3WlCz1DZZoUMhiZKvhrNHEBJT9xey6JeCi7UbnN4GZoA7F-bJoBNgIpxdeAAbquD7dNKGzszsuapsAZmk8tPY0iKaBLG1GJyClN2MM49CP--i50fA" 
-                      alt="Woven Monolith II" 
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKgBDzUGMPDHt9ebnUq6gCfj_lfFr7tTRq-QBx2viwxPnF5IqTvwSdw6j6QWV8wEHkAyoMs4GquGvMd-er5ar_iXpFz_u0zYY7cDlvj1U0kxp4z_m-LkiY9SAWr5v3g-O-Ezcac3WlCz1DZZoUMhiZKvhrNHEBJT9xey6JeCi7UbnN4GZoA7F-bJoBNgIpxdeAAbquD7dNKGzszsuapsAZmk8tPY0iKaBLG1GJyClN2MM49CP--i50fA"
+                      alt="Woven Monolith II"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
@@ -398,19 +398,19 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
             </div>
             {/* Layout Switcher Tabs */}
             <div className="flex items-center bg-white p-1 shadow-sm mt-4 md:mt-0 border border-[#E7E4DF]">
-              <button 
+              <button
                 onClick={() => setActiveLayout('editorial')}
                 className={`px-4 py-2 font-sans text-xs uppercase transition-colors cursor-pointer ${activeLayout === 'editorial' ? 'bg-[#141413] text-white font-semibold' : 'text-[#56423d] hover:text-[#141413]'}`}
               >
                 Editorial Monolith
               </button>
-              <button 
+              <button
                 onClick={() => setActiveLayout('gallery')}
                 className={`px-4 py-2 font-sans text-xs uppercase transition-colors cursor-pointer ${activeLayout === 'gallery' ? 'bg-[#141413] text-white font-semibold' : 'text-[#56423d] hover:text-[#141413]'}`}
               >
                 Clean Gallery
               </button>
-              <button 
+              <button
                 onClick={() => setActiveLayout('masonry')}
                 className={`px-4 py-2 font-sans text-xs uppercase transition-colors cursor-pointer ${activeLayout === 'masonry' ? 'bg-[#141413] text-white font-semibold' : 'text-[#56423d] hover:text-[#141413]'}`}
               >
@@ -447,7 +447,7 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
                   </p>
                 </div>
                 <div className="mt-4 md:mt-0 flex items-center gap-3">
-                  <button 
+                  <button
                     onClick={() => setCommissionOpen(!commissionOpen)}
                     className="bg-[#C25E3E] text-white font-sans text-xs uppercase px-6 py-3 hover:bg-[#141413] transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
                   >
@@ -462,9 +462,9 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                   <div className="lg:col-span-8 bg-white p-4 shadow-sm group border border-[#E7E4DF]">
                     <div className="aspect-[16/10] bg-[#efeeeb] overflow-hidden relative">
-                      <img 
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXvOMhPHtDf7bbP3Bo84Yl70tIEXgXvLCZOWWgMIrFYCKbDdjin_iLTVwJPv16AAZFGmnWtg7VNPz3jhdAImsxronYEHVwzMYygWKIYDz2_ce2ouR-u1oUeX1DfgfQkoUCQapfvhyONxQ5y4O6rb_sJeJk_5uOV7BDc4F8fyzhlisnAoW7YP8pIg8Wd4NSitf_Z2X78RzHM6IR8pZFsEAbcBYGc1pRrMghWyd4_NbagCkc3zo_KILdAQ" 
-                        alt="Tectonic Vessel No. 04" 
+                      <img
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXvOMhPHtDf7bbP3Bo84Yl70tIEXgXvLCZOWWgMIrFYCKbDdjin_iLTVwJPv16AAZFGmnWtg7VNPz3jhdAImsxronYEHVwzMYygWKIYDz2_ce2ouR-u1oUeX1DfgfQkoUCQapfvhyONxQ5y4O6rb_sJeJk_5uOV7BDc4F8fyzhlisnAoW7YP8pIg8Wd4NSitf_Z2X78RzHM6IR8pZFsEAbcBYGc1pRrMghWyd4_NbagCkc3zo_KILdAQ"
+                        alt="Tectonic Vessel No. 04"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
                         referrerPolicy="no-referrer"
                       />
@@ -654,13 +654,13 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
                 Claim your sovereign handle, upload your first portfolio collection in under five minutes, and begin accepting formal curatorial commissions.
               </p>
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button 
+                <button
                   onClick={() => onNavigate('studio-overview')}
                   className="bg-[#C25E3E] text-white font-sans text-xs uppercase tracking-wider px-8 py-3.5 hover:bg-white hover:text-[#141413] transition-colors duration-200 cursor-pointer shadow-sm"
                 >
                   Start Your Studio Atelier
                 </button>
-                <button 
+                <button
                   onClick={() => onNavigate('portfolio-customizer')}
                   className="text-white font-sans text-xs uppercase tracking-wider py-3.5 px-4 hover:text-[#ffb59e] transition-colors flex items-center gap-1 cursor-pointer"
                 >

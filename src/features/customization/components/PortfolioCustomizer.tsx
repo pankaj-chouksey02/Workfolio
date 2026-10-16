@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
+import { useCustomization } from '@/features/customization/CustomizationProvider';
 
 export interface PortfolioCustomizerProps {
   onNavigate?: (path: string) => void;
@@ -76,15 +77,24 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
   const [buttonRadius, setButtonRadius] = useState<ButtonRadiusOption>('rounded');
   const [canvasTone, setCanvasTone] = useState<CanvasToneOption>('bone');
   const [publishedToast, setPublishedToast] = useState(false);
+  const [customAccent, setCustomAccent] = useState<string | null>(() => {
+    try {
+      return typeof window !== 'undefined' ? localStorage.getItem('pc:accent') : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
   const activePalette = COLOR_PALETTES[colorScheme];
+  const activeAccent = customAccent || activePalette.accent;
+
+  const { settings, setSettings } = useCustomization();
 
   const handlePublish = () => {
     setPublishedToast(true);
     setTimeout(() => setPublishedToast(false), 4000);
   };
 
-  // Spacing styling classes
   const spacingStyles = {
     compact: {
       container: 'p-5 sm:p-7 space-y-6',
@@ -106,14 +116,12 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
     },
   }[spacing];
 
-  // Button shape classes
   const buttonRadiusClass = {
     sharp: 'rounded-none',
     rounded: 'rounded-md',
     pill: 'rounded-full',
   }[buttonRadius];
 
-  // Canvas background styles
   const canvasBgClass =
     canvasTone === 'basalt'
       ? 'bg-[#181817] text-white'
@@ -123,7 +131,6 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-[#FAF8F5]">
-      {/* Top Action & Viewport Context Bar */}
       <div className="w-full bg-white border-b border-[#E7E4DF] sticky top-16 z-30 px-5 lg:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
@@ -142,7 +149,6 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
           </div>
         </div>
 
-        {/* Actions & Viewport Toggle */}
         <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
           <div className="flex items-center bg-[#f5f3f0] p-0.5 border border-[#E7E4DF] rounded-md">
             <button
@@ -200,7 +206,7 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
             </button>
             <button
               onClick={handlePublish}
-              style={{ backgroundColor: activePalette.accent }}
+              style={{ backgroundColor: activeAccent }}
               className="px-4 py-1.5 text-white hover:opacity-90 transition-opacity flex items-center gap-2 font-sans text-xs uppercase tracking-wider shadow-xs cursor-pointer rounded-md"
             >
               <span>Publish Sovereign</span>
@@ -217,59 +223,34 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
         </div>
       )}
 
-      {/* Main Dual-Pane Studio Canvas */}
       <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-0 relative flex-1">
-        {/* LEFT COLUMN: Customization Controls matching requested design */}
         <div className="lg:col-span-4 xl:col-span-4 bg-[#FAF8F5] border-r border-[#E7E4DF] p-4 lg:p-5 space-y-4 max-h-[calc(100vh-7rem)] overflow-y-auto">
-          {/* Card 1: TEMPLATE */}
           <div className="bg-white border border-[#EAE6DF] rounded-2xl p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-3.5">
             <h2 className="text-[11px] font-semibold text-[#8C847C] tracking-wider uppercase">TEMPLATE</h2>
-
-            {/* 2-Column Grid of Templates */}
             <div className="grid grid-cols-2 gap-3">
               {TEMPLATES.map((tmpl) => {
                 const isSelected = template === tmpl.id;
                 return (
                   <button
                     key={tmpl.id}
-                    onClick={() => setTemplate(tmpl.id)}
+                    onClick={() => {
+                      setTemplate(tmpl.id);
+                      setSettings({ layout: tmpl.id === 'gallery' ? 'grid' : 'columns' });
+                    }}
                     className={`rounded-2xl p-3 flex flex-col items-start gap-2.5 cursor-pointer text-left transition-all duration-200 outline-none w-full ${
                       isSelected
                         ? 'border border-[#F0A98F] bg-[#FFF8F4] shadow-xs'
                         : 'border border-[#EAE6DF] bg-white hover:border-[#D5CFBE] hover:bg-[#FAF9F6]'
                     }`}
                   >
-                    {/* Thumbnail box with the 3 vertical layout bars */}
-                    <div
-                      className={`w-full h-16 rounded-xl flex items-center justify-center transition-colors duration-200 ${
-                        isSelected ? 'bg-[#FAECE4]' : 'bg-[#F4F1EA]'
-                      }`}
-                    >
+                    <div className={`w-full h-16 rounded-xl flex items-center justify-center transition-colors duration-200 ${isSelected ? 'bg-[#FAECE4]' : 'bg-[#F4F1EA]'}`}>
                       <div className="flex items-end justify-center gap-1.5">
-                        <div
-                          className={`w-3.5 h-6 rounded-[2px] transition-colors duration-200 ${
-                            isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'
-                          }`}
-                        />
-                        <div
-                          className={`w-3.5 h-10 rounded-[2px] transition-colors duration-200 ${
-                            isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'
-                          }`}
-                        />
-                        <div
-                          className={`w-3.5 h-7 rounded-[2px] transition-colors duration-200 ${
-                            isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'
-                          }`}
-                        />
+                        <div className={`w-3.5 h-6 rounded-[2px] transition-colors duration-200 ${isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'}`} />
+                        <div className={`w-3.5 h-10 rounded-[2px] transition-colors duration-200 ${isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'}`} />
+                        <div className={`w-3.5 h-7 rounded-[2px] transition-colors duration-200 ${isSelected ? 'bg-[#D07352]' : 'bg-[#D1C9BE]'}`} />
                       </div>
                     </div>
-
-                    {/* Template Name */}
-                    <span
-                      className={`text-xs sm:text-sm font-medium transition-colors ${
-                        isSelected ? 'text-[#B85532] font-semibold' : 'text-[#1C1A17]'
-                      }`}
-                    >
+                    <span className={`text-xs sm:text-sm font-medium transition-colors ${isSelected ? 'text-[#B85532] font-semibold' : 'text-[#1C1A17]'}`}>
                       {tmpl.name}
                     </span>
                   </button>
@@ -278,39 +259,21 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
             </div>
           </div>
 
-          {/* Card 2: APPEARANCE */}
           <div className="bg-white border border-[#EAE6DF] rounded-2xl p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-3.5">
             <h2 className="text-[11px] font-semibold text-[#8C847C] tracking-wider uppercase">APPEARANCE</h2>
-
             <div className="space-y-3.5 pt-1">
-              {/* Row 1: Typography */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Typography</span>
                 <div className="inline-flex items-center bg-[#F4F1EB] p-1 rounded-full border border-[#ECE8E0]">
-                  <button
-                    onClick={() => setTypography('serif')}
-                    className={`px-4 py-1 rounded-full text-xs transition-all font-serif cursor-pointer ${
-                      typography === 'serif'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
+                  <button onClick={() => { setTypography('serif'); setSettings({ typography: 'serif' }); }} className={`px-4 py-1 rounded-full text-xs transition-all font-serif cursor-pointer ${typography === 'serif' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>
                     Serif
                   </button>
-                  <button
-                    onClick={() => setTypography('sans')}
-                    className={`px-4 py-1 rounded-full text-xs transition-all font-sans cursor-pointer ${
-                      typography === 'sans'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
+                  <button onClick={() => { setTypography('sans'); setSettings({ typography: 'sans' }); }} className={`px-4 py-1 rounded-full text-xs transition-all font-sans cursor-pointer ${typography === 'sans' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>
                     Sans
                   </button>
                 </div>
               </div>
 
-              {/* Row 2: Colors */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Colors</span>
                 <div className="flex items-center gap-2.5">
@@ -320,161 +283,71 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                     return (
                       <button
                         key={col}
-                        onClick={() => setColorScheme(col)}
+                        onClick={() => {
+                          setColorScheme(col);
+                          setSettings({ colorPalette: col, accent: palette.swatchHex });
+                        }}
                         title={palette.name}
                         style={{ backgroundColor: palette.swatchHex }}
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full cursor-pointer transition-all duration-200 relative ${
-                          isColSelected
-                            ? 'ring-2 ring-offset-2 ring-[#1C1A17] scale-105 shadow-xs'
-                            : 'hover:scale-105 opacity-85 hover:opacity-100'
-                        }`}
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full cursor-pointer transition-all duration-200 relative ${isColSelected ? 'ring-2 ring-offset-2 ring-[#1C1A17] scale-105 shadow-xs' : 'hover:scale-105 opacity-85 hover:opacity-100'}`}
                       />
                     );
                   })}
+                  <input
+                    aria-label="Custom accent color"
+                    title="Custom accent"
+                    type="color"
+                    value={customAccent ?? activePalette.swatchHex}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCustomAccent(v);
+                      try {
+                        localStorage.setItem('pc:accent', v);
+                      } catch (err) {}
+                      setSettings({ accent: v });
+                    }}
+                    className="w-8 h-8 rounded-full border-none p-0 cursor-pointer"
+                  />
                 </div>
               </div>
 
-              {/* Row 3: Spacing */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Spacing</span>
                 <div className="inline-flex items-center bg-[#F4F1EB] p-1 rounded-full border border-[#ECE8E0]">
-                  <button
-                    onClick={() => setSpacing('compact')}
-                    className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      spacing === 'compact'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Compact
-                  </button>
-                  <button
-                    onClick={() => setSpacing('comfortable')}
-                    className={`px-3.5 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      spacing === 'comfortable'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Comfortable
-                  </button>
-                  <button
-                    onClick={() => setSpacing('airy')}
-                    className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      spacing === 'airy'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Airy
-                  </button>
+                  <button onClick={() => { setSpacing('compact'); setSettings({ spacing: 'compact' }); }} className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${spacing === 'compact' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Compact</button>
+                  <button onClick={() => { setSpacing('comfortable'); setSettings({ spacing: 'comfortable' }); }} className={`px-3.5 py-1 rounded-full text-xs transition-all cursor-pointer ${spacing === 'comfortable' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Comfortable</button>
+                  <button onClick={() => { setSpacing('airy'); setSettings({ spacing: 'airy' }); }} className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${spacing === 'airy' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Airy</button>
                 </div>
               </div>
 
-              {/* Row 4: Buttons (Style) */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Buttons</span>
                 <div className="inline-flex items-center bg-[#F4F1EB] p-1 rounded-full border border-[#ECE8E0]">
-                  <button
-                    onClick={() => setButtonStyle('border')}
-                    className={`px-4 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      buttonStyle === 'border'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Border
-                  </button>
-                  <button
-                    onClick={() => setButtonStyle('fill')}
-                    className={`px-4 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      buttonStyle === 'fill'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Fill
-                  </button>
+                  <button onClick={() => setButtonStyle('border')} className={`px-4 py-1 rounded-full text-xs transition-all cursor-pointer ${buttonStyle === 'border' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Border</button>
+                  <button onClick={() => setButtonStyle('fill')} className={`px-4 py-1 rounded-full text-xs transition-all cursor-pointer ${buttonStyle === 'fill' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Fill</button>
                 </div>
               </div>
 
-              {/* Row 5: Corner Radius */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Corners</span>
                 <div className="inline-flex items-center bg-[#F4F1EB] p-1 rounded-full border border-[#ECE8E0]">
-                  <button
-                    onClick={() => setButtonRadius('sharp')}
-                    className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      buttonRadius === 'sharp'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Sharp
-                  </button>
-                  <button
-                    onClick={() => setButtonRadius('rounded')}
-                    className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      buttonRadius === 'rounded'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Rounded
-                  </button>
-                  <button
-                    onClick={() => setButtonRadius('pill')}
-                    className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      buttonRadius === 'pill'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Pill
-                  </button>
+                  <button onClick={() => setButtonRadius('sharp')} className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${buttonRadius === 'sharp' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Sharp</button>
+                  <button onClick={() => setButtonRadius('rounded')} className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${buttonRadius === 'rounded' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Rounded</button>
+                  <button onClick={() => setButtonRadius('pill')} className={`px-3 py-1 rounded-full text-xs transition-all cursor-pointer ${buttonRadius === 'pill' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Pill</button>
                 </div>
               </div>
 
-              {/* Row 6: Canvas Tone */}
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-sm font-medium text-[#1C1A17]">Canvas Tone</span>
                 <div className="inline-flex items-center bg-[#F4F1EB] p-1 rounded-full border border-[#ECE8E0]">
-                  <button
-                    onClick={() => setCanvasTone('bone')}
-                    className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      canvasTone === 'bone'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Bone
-                  </button>
-                  <button
-                    onClick={() => setCanvasTone('linen')}
-                    className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      canvasTone === 'linen'
-                        ? 'bg-white text-[#1C1A17] font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Linen
-                  </button>
-                  <button
-                    onClick={() => setCanvasTone('basalt')}
-                    className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${
-                      canvasTone === 'basalt'
-                        ? 'bg-[#1C1A17] text-white font-semibold shadow-xs'
-                        : 'text-[#7A756D] hover:text-[#1C1A17]'
-                    }`}
-                  >
-                    Basalt
-                  </button>
+                  <button onClick={() => { setCanvasTone('bone'); setSettings({ darkMode: false }); }} className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${canvasTone === 'bone' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Bone</button>
+                  <button onClick={() => { setCanvasTone('linen'); setSettings({ darkMode: false }); }} className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${canvasTone === 'linen' ? 'bg-white text-[#1C1A17] font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Linen</button>
+                  <button onClick={() => { setCanvasTone('basalt'); setSettings({ darkMode: true }); }} className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer ${canvasTone === 'basalt' ? 'bg-[#1C1A17] text-white font-semibold shadow-xs' : 'text-[#7A756D] hover:text-[#1C1A17]'}`}>Basalt</button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Card 3: SOVEREIGN ROUTE & IDENTITY */}
           <div className="bg-white border border-[#EAE6DF] rounded-2xl p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-[11px] font-semibold text-[#8C847C] tracking-wider uppercase">IDENTITY & DOMAIN</h2>
@@ -499,85 +372,88 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Interactive Studio Live Viewport */}
         <div className="lg:col-span-8 xl:col-span-8 bg-[#F3EFE9] p-4 lg:p-8 flex flex-col items-center justify-start overflow-y-auto min-h-[calc(100vh-7rem)] transition-all duration-300">
           <div
-            className="transition-all duration-300 border border-[#E0DBD2] shadow-xl bg-white w-full rounded-xl overflow-hidden"
+            className="transition-all duration-300 border border-[#E0DBD2] shadow-xl bg-white w-full rounded-xl overflow-hidden preview-card"
             style={{
               maxWidth: viewportMode === 'mobile' ? '390px' : viewportMode === 'tablet' ? '768px' : '100%',
             }}
           >
-            {/* Browser Simulated Header Bar */}
-            <div className="h-10 bg-[#FAF8F5] border-b border-[#E7E4DF] px-4 flex items-center justify-between select-none">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
-                <span className="h-3.5 w-px bg-[#E7E4DF] mx-1"></span>
-                <span className="material-symbols-outlined text-[15px] text-[#716E68]">lock</span>
-                <span className="font-mono text-[11px] text-[#141413] font-medium">
-                  atelier.art/@elenavance?template={template}&preview=draft_v2
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[10px] text-[#716E68] uppercase tracking-widest hidden sm:inline">
-                  {typography} · {colorScheme} · {spacing}
-                </span>
-              </div>
-            </div>
-
-            {/* LIVE PREVIEW CONTENT */}
-            <div className={`${canvasBgClass} ${spacingStyles.container} transition-all duration-300`}>
-              {/* TOP NAVIGATION BAR */}
-              <div className="border-b border-[#E7E4DF]/80 pb-5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-4">
-                <div className="flex items-baseline gap-3">
-                  <span
-                    className={`text-2xl font-bold tracking-tight ${
-                      typography === 'serif' ? 'font-serif' : 'font-sans'
-                    } ${canvasTone === 'basalt' ? 'text-white' : 'text-[#141413]'}`}
-                  >
-                    Elena Vance
-                  </span>
-                  <span className="font-mono text-[10px] text-[#716E68] uppercase tracking-widest">
-                    {template === 'studio' ? 'Atelier Ledger & Specs' : 'Atelier Monograph'}
+            {settings.showHeader && (
+              <div className="h-10 bg-[#FAF8F5] border-b border-[#E7E4DF] px-4 flex items-center justify-between select-none">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E2DDD5]"></span>
+                  <span className="h-3.5 w-px bg-[#E7E4DF] mx-1"></span>
+                  <span className="material-symbols-outlined text-[15px] text-[#716E68]">lock</span>
+                  <span className="font-mono text-[11px] text-[#141413] font-medium">
+                    atelier.art/@elenavance?template={template}&preview=draft_v2
                   </span>
                 </div>
-                <nav className="flex items-center gap-5 sm:gap-6 text-xs">
-                  <a
-                    href="#works"
-                    className="font-semibold pb-0.5 border-b-2"
-                    style={{ borderColor: activePalette.accent, color: activePalette.accent }}
-                  >
-                    Works (34)
-                  </a>
-                  <a
-                    href="#collections"
-                    className={`transition-colors ${
-                      canvasTone === 'basalt' ? 'text-stone-400 hover:text-white' : 'text-[#716E68] hover:text-[#141413]'
-                    }`}
-                  >
-                    Collections
-                  </a>
-                  <a
-                    href="#bio"
-                    className={`transition-colors ${
-                      canvasTone === 'basalt' ? 'text-stone-400 hover:text-white' : 'text-[#716E68] hover:text-[#141413]'
-                    }`}
-                  >
-                    Monograph
-                  </a>
-                  <button
-                    className={`px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-all cursor-pointer ${buttonRadiusClass}`}
-                    style={
-                      buttonStyle === 'fill'
-                        ? { backgroundColor: activePalette.accent, color: '#FFFFFF' }
-                        : { border: `1.5px solid ${activePalette.accent}`, color: activePalette.accent }
-                    }
-                  >
-                    Commission
-                  </button>
-                </nav>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[10px] text-[#716E68] uppercase tracking-widest hidden sm:inline">
+                    {typography} · {colorScheme} · {spacing}
+                  </span>
+                </div>
               </div>
+            )}
+
+            <div
+              className={`${canvasBgClass} ${spacingStyles.container} transition-all duration-300`}
+              style={{ filter: settings.imageFilter }}
+            >
+              {settings.showHeader ? (
+                <div className="border-b border-[#E7E4DF]/80 pb-5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-4">
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className={`text-2xl font-bold tracking-tight ${
+                        typography === 'serif' ? 'font-serif' : 'font-sans'
+                      } ${canvasTone === 'basalt' ? 'text-white' : 'text-[#141413]'}`}
+                    >
+                      Elena Vance
+                    </span>
+                    <span className="font-mono text-[10px] text-[#716E68] uppercase tracking-widest">
+                      {template === 'studio' ? 'Atelier Ledger & Specs' : 'Atelier Monograph'}
+                    </span>
+                  </div>
+                  <nav className="flex items-center gap-5 sm:gap-6 text-xs">
+                    <a
+                      href="#works"
+                      className="font-semibold pb-0.5 border-b-2"
+                      style={{ borderColor: activeAccent, color: activeAccent }}
+                    >
+                      Works (34)
+                    </a>
+                    <a
+                      href="#collections"
+                      className={`transition-colors ${
+                        canvasTone === 'basalt' ? 'text-stone-400 hover:text-white' : 'text-[#716E68] hover:text-[#141413]'
+                      }`}
+                    >
+                      Collections
+                    </a>
+                    <a
+                      href="#bio"
+                      className={`transition-colors ${
+                        canvasTone === 'basalt' ? 'text-stone-400 hover:text-white' : 'text-[#716E68] hover:text-[#141413]'
+                      }`}
+                    >
+                      Monograph
+                    </a>
+                    <button
+                      className={`px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-all cursor-pointer ${buttonRadiusClass}`}
+                      style={
+                        buttonStyle === 'fill'
+                          ? { backgroundColor: activeAccent, color: '#FFFFFF' }
+                          : { border: `1.5px solid ${activeAccent}`, color: activeAccent }
+                      }
+                    >
+                      Commission
+                    </button>
+                  </nav>
+                </div>
+              ) : null}
 
               {/* DYNAMIC CONTENT PER TEMPLATE */}
 
@@ -606,8 +482,8 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                           className={`px-5 py-2.5 text-xs uppercase tracking-wider font-medium shadow-xs transition-all cursor-pointer ${buttonRadiusClass}`}
                           style={
                             buttonStyle === 'fill'
-                              ? { backgroundColor: activePalette.accent, color: '#FFFFFF' }
-                              : { border: `2px solid ${activePalette.accent}`, color: activePalette.accent }
+                              ? { backgroundColor: activeAccent, color: '#FFFFFF' }
+                              : { border: `2px solid ${activeAccent}`, color: activeAccent }
                           }
                         >
                           Acquire Catalog
@@ -617,7 +493,7 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                     </div>
 
                     <div className="lg:col-span-5">
-                      <div className={`p-4 rounded-2xl border transition-all ${canvasTone === 'basalt' ? 'bg-[#242322] border-stone-800' : 'bg-white border-[#EAE6DF]'}`}>
+                      <div className={`p-4 rounded-2xl border transition-all preview-card ${canvasTone === 'basalt' ? 'bg-[#242322] border-stone-800' : 'bg-white border-[#EAE6DF]'}`}>
                         <div className="aspect-[4/5] overflow-hidden rounded-xl relative">
                           <img
                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX4-IMJs6sRHxl9Nfv-gtMKZf6RIxHTIzwNKTmCR1xsXY3Z1GNgIN6HmYrs1I0Q7wM9gXq4_-CQ0m1eeexY-q6YmuQcjzGV4TcAIv4BosgnJK2EyjBkRe4mhJ6P6tbkkkfa1HebktnpXbR_FRySlDJcsC7oxiUID8OxrfcNvpzvXgz49c6Dt0l6t8XCvoCD0NHu27k8CTZLWYORqt9REn8AwMQeROphbdWR2CwRmOnxKnDxMWxsdGemA"
@@ -658,9 +534,13 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDha1TzoOkLMLpC_Bs7xc7KfYol24S6Ozc4T_tILVTNXWd1gJMy-YCCGDNR81oSa67kPy8pmJeFcltIIXNq695dXm4t_l1MACK4MtgfbNGK8lh7B-Fuv4EdWZgMpa68X92X6c_Bvg5_CwsotT4UuE-POB_NYuijoPFFC-ILSD-hW_c2sWFqfpHMsb5RxFG3ODsN-VI6GDrd8-xM8geSl8ib4XETj5RSMQ62xAOPKzobR0Ms3cacjNzrUA',
                       },
                     ].map((work, idx) => (
-                      <div key={idx} className={`p-3.5 rounded-xl border ${canvasTone === 'basalt' ? 'bg-[#222120] border-stone-800' : 'bg-white border-[#EAE6DF]'}`}>
+                      <div key={idx} className={`p-3.5 rounded-xl border preview-card ${canvasTone === 'basalt' ? 'bg-[#222120] border-stone-800' : 'bg-white border-[#EAE6DF]'}`}>
                         <div className="aspect-square rounded-lg overflow-hidden mb-3">
-                          <img src={work.img} alt={work.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          <img
+                            src={work.img}
+                            alt={work.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
                         </div>
                         <div className="flex justify-between items-baseline">
                           <h4 className={`text-sm font-medium ${typography === 'serif' ? 'font-serif' : 'font-sans'}`}>{work.title}</h4>
@@ -688,36 +568,6 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                     <p className={`text-xs leading-relaxed max-w-md mx-auto ${canvasTone === 'basalt' ? 'text-stone-400' : 'text-[#716E68]'}`}>
                       Quiet reduction firings, natural wood ash, and raw mineral compositions. Handcrafted between Zürich and Kyoto.
                     </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl mx-auto pt-6">
-                    <div className="space-y-3">
-                      <div className="aspect-[3/4] bg-stone-100 overflow-hidden">
-                        <img
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX4-IMJs6sRHxl9Nfv-gtMKZf6RIxHTIzwNKTmCR1xsXY3Z1GNgIN6HmYrs1I0Q7wM9gXq4_-CQ0m1eeexY-q6YmuQcjzGV4TcAIv4BosgnJK2EyjBkRe4mhJ6P6tbkkkfa1HebktnpXbR_FRySlDJcsC7oxiUID8OxrfcNvpzvXgz49c6Dt0l6t8XCvoCD0NHu27k8CTZLWYORqt9REn8AwMQeROphbdWR2CwRmOnxKnDxMWxsdGemA"
-                          alt="Minimal Work 1"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex justify-between items-baseline pt-1 border-t border-[#EAE6DF]">
-                        <span className="text-xs font-mono">01 / Tectonic Vessel</span>
-                        <span className="text-xs font-mono text-[#716E68]">1320°C</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="aspect-[3/4] bg-stone-100 overflow-hidden">
-                        <img
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfpcvJIiJqG-61uu2eZzkd-p7joH3nu1pR4OJJIV9YgWhOwLv0T9bJ_qMFiilDALU0uE2Y8-C-rxDm5JGipt7B7qGYcIPO4N7Z0hExdku7JA3S5PVs3yWnBt6mi7Odbpif0cz_LzIuGf4uh5wlfumfy-HCiZbITrze-heFJtDNuh0u-SkCaKN2_Z-rp4Y5eSxNAz9czuVNVEzKMBbIeVzaHpn1exfY1yH_tyVizctSQFJ0yPB9dSyA7w"
-                          alt="Minimal Work 2"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex justify-between items-baseline pt-1 border-t border-[#EAE6DF]">
-                        <span className="text-xs font-mono">02 / Strata Monolith</span>
-                        <span className="text-xs font-mono text-[#716E68]">2024</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -814,7 +664,7 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                       { title: 'Lithic Fragment I', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDha1TzoOkLMLpC_Bs7xc7KfYol24S6Ozc4T_tILVTNXWd1gJMy-YCCGDNR81oSa67kPy8pmJeFcltIIXNq695dXm4t_l1MACK4MtgfbNGK8lh7B-Fuv4EdWZgMpa68X92X6c_Bvg5_CwsotT4UuE-POB_NYuijoPFFC-ILSD-hW_c2sWFqfpHMsb5RxFG3ODsN-VI6GDrd8-xM8geSl8ib4XETj5RSMQ62xAOPKzobR0Ms3cacjNzrUA', status: 'Available' },
                     ].map((item, i) => (
                       <div key={i} className={`border p-3 rounded-lg ${canvasTone === 'basalt' ? 'bg-[#222120] border-stone-800' : 'bg-white border-[#E7E4DF]'}`}>
-                        <div className="aspect-[4/5] overflow-hidden mb-2 rounded-sm">
+                        <div className="aspect-[4/5] overflow-hidden mb-3 rounded-sm">
                           <img src={item.img} alt={item.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex justify-between items-center pt-1">
@@ -889,15 +739,6 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                   </div>
                 </div>
               )}
-
-              {/* FOOTER OF PREVIEW */}
-              <div className="border-t border-[#E7E4DF] pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#716E68] gap-3">
-                <span className="font-mono text-[11px]">© Elena Vance Atelier · Sovereign Monograph Platform</span>
-                <div className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                  <span className="font-mono text-[11px]">DNS-SEC · atelier.art/@elenavance</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

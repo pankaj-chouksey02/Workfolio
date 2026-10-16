@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from './Header';
 import Footer from './Footer';
@@ -11,7 +11,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export default function AppShell({ children }: AppShellProps) {
+function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname();
   const isStudio = pathname?.startsWith('/studio');
 
@@ -31,5 +31,21 @@ export default function AppShell({ children }: AppShellProps) {
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
+  );
+}
+
+export default function AppShell({ children }: AppShellProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+          {/* Static header skeleton — no hooks allowed in Suspense fallback */}
+          <div className="h-20 sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E7E4DF]" />
+          <main className="flex-1">{children}</main>
+        </div>
+      }
+    >
+      <AppShellContent>{children}</AppShellContent>
+    </Suspense>
   );
 }
