@@ -5,7 +5,7 @@ import CustomizationProvider from '@/features/customization/CustomizationProvide
 
 export const metadata = {
   title: 'Atelier',
-  description: 'Museum-grade portfolio and commission platform',
+  description: 'Professional portfolio and commission platform for artists',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -46,13 +46,13 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
 
             {/* Subheadline */}
             <p className="font-sans text-lg text-[#5f5e5d] max-w-xl font-normal leading-relaxed pt-1">
-              Build a beautiful portfolio that showcases your work, tells your story, and helps people discover what you do — all through one shareable link.
+              Create a stunning portfolio to showcase your work, share your story, and let people find you – all with one shareable link.
             </p>
 
             {/* Inline Handle Claim Widget */}
             <div className="pt-2 pb-1">
               <div className="bg-white p-4 sm:p-6 shadow-md max-w-xl border border-[#E7E4DF]">
-                <span className="block font-mono text-[10px] uppercase text-[#716E68] tracking-wider mb-2">Claim your sovereign archival url</span>
+                <span className="block font-mono text-[10px] uppercase text-[#716E68] tracking-wider mb-2">Reserve your unique URL</span>
                 <form onSubmit={handleClaimSubmit} className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0">
                   <div className="flex items-center bg-[#f5f3f0] px-4 py-3 flex-1 border border-[#E7E4DF]">
                     <span className="font-mono text-xs text-[#716E68] select-none pr-1">atelier.art/@</span>
@@ -89,14 +89,14 @@ export default function LandingScreen({ onNavigate }: LandingScreenProps) {
                 href="#demo-preview"
                 className="inline-flex items-center gap-2 font-sans text-xs uppercase tracking-wider bg-[#C25E3E] text-white px-6 py-3.5 hover:bg-[#141413] transition-colors duration-200 shadow-sm"
               >
-                <span>Explore Live Ateliers</span>
+                <span>See Live Ateliers</span>
                 <span className="material-symbols-outlined text-[16px]">north_east</span>
               </a>
               <button
                 onClick={() => onNavigate('studio-overview')}
                 className="inline-flex items-center gap-2 font-sans text-xs uppercase tracking-wider bg-[#141413] text-white px-6 py-3.5 hover:bg-[#C25E3E] transition-colors duration-200 shadow-sm"
               >
-                <span>Create your portfolio</span>
+                <span>Create Portfolio</span>
                 <span className="material-symbols-outlined text-[16px]">dashboard</span>
               </button>
             </div>

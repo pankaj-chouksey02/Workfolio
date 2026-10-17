@@ -7,7 +7,19 @@ export interface PortfolioCustomizerProps {
   onNavigate?: (path: string) => void;
 }
 
-type TemplateId = 'minimal' | 'editorial' | 'gallery' | 'artistic' | 'studio';
+type TemplateId =
+  | 'minimal'
+  | 'editorial'
+  | 'gallery'
+  | 'artistic'
+  | 'studio'
+  | 'frieze'
+  | 'sothebys'
+  | 'kinfolk'
+  | 'muji'
+  | 'atelier'
+  | 'obsidian'
+  | 'nocturne';
 type TypographyOption = 'serif' | 'sans';
 type ColorOption = 'terracotta' | 'sage' | 'charcoal';
 type SpacingOption = 'compact' | 'comfortable' | 'airy';
@@ -26,6 +38,13 @@ const TEMPLATES: TemplateConfig[] = [
   { id: 'gallery', name: 'Gallery' },
   { id: 'artistic', name: 'Artistic' },
   { id: 'studio', name: 'Studio' },
+  { id: 'frieze', name: 'Frieze' },
+  { id: 'sothebys', name: "Sotheby's" },
+  { id: 'kinfolk', name: 'Kinfolk' },
+  { id: 'muji', name: 'MUJI' },
+  { id: 'atelier', name: 'Atelier' },
+  { id: 'obsidian', name: 'Obsidian' },
+  { id: 'nocturne', name: 'Nocturne' },
 ];
 
 const COLOR_PALETTES = {
@@ -736,6 +755,144 @@ export function PortfolioCustomizer({ onNavigate }: PortfolioCustomizerProps) {
                       </div>
                       <span className="font-mono text-[11px] text-[#716E68] block">Log #492 · Ash vitrification layer on unglazed coarse chamotte stoneware.</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. FRIEZE TEMPLATE */}
+              {template === 'frieze' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border-b border-[#141413] pb-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-[10px] bg-[#A23B3B] text-white px-2 py-0.5 uppercase tracking-wider font-semibold">
+                        Frieze Collector Ledger
+                      </span>
+                      <span className="font-mono text-xs text-[#716E68]">Primary Market Accession</span>
+                    </div>
+                    <h2 className={`text-4xl sm:text-5xl tracking-tight ${typography === 'serif' ? 'font-serif' : 'font-sans font-bold'}`}>
+                      Contemporary Blue-Chip Monograph
+                    </h2>
+                    <p className="font-sans text-sm text-[#716E68] max-w-2xl leading-relaxed">
+                      Museum-grade whitespace, verified provenance chain, acquisition-first storytelling, and curatorial footnotes.
+                    </p>
+                  </div>
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${spacingStyles.gridGap}`}>
+                    {[
+                      { title: 'Lithic Monolith I', tag: 'Acquisition Reserve', price: '$24,000' },
+                      { title: 'Tectonic Vessel IV', tag: 'Available', price: '$18,500' },
+                      { title: 'Caldera Form 02', tag: 'Institution Held', price: '$32,000' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="border border-[#E7E4DF] p-4 bg-white space-y-3">
+                        <div className="aspect-[3/4] bg-neutral-100 flex items-center justify-center font-mono text-xs text-[#716E68]">
+                          Artwork {idx + 1}
+                        </div>
+                        <div className="flex justify-between items-baseline">
+                          <h4 className="font-serif font-bold text-sm">{item.title}</h4>
+                          <span className="font-mono text-xs font-semibold text-[#A23B3B]">{item.price}</span>
+                        </div>
+                        <span className="font-mono text-[10px] px-2 py-0.5 bg-[#FAF8F5] border border-[#E7E4DF] block w-fit">
+                          {item.tag}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 7. SOTHEBY'S TEMPLATE */}
+              {template === 'sothebys' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border border-[#002147] p-6 bg-[#FCFCFB] space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#002147]/20 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#002147]" />
+                        <span className="font-mono text-xs font-bold text-[#002147] uppercase tracking-widest">Sotheby's Auction Registry</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-[#716E68]">Archival Lot Verification</span>
+                    </div>
+                    <h2 className="font-serif text-3xl text-[#002147]">Secondary Market Provenance & Historical Lots</h2>
+                    <p className="font-sans text-xs text-[#716E68] max-w-xl">
+                      Cryptographic authentication, public institutional ledger records, and private acquisition lounge.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 8. KINFOLK TEMPLATE */}
+              {template === 'kinfolk' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="p-8 bg-[#F3EEE7] border border-[#DDD4C7] space-y-4 text-center max-w-2xl mx-auto">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-[#7D6E5A]">Artisan Studio Catalogue</span>
+                    <h2 className="font-serif text-3xl sm:text-4xl text-[#3F3B37]">The Slow Hand & Earth</h2>
+                    <p className="font-sans text-xs sm:text-sm text-[#7D6E5A] leading-relaxed">
+                      Tactile organic storytelling, kiln logs, and mindful small-batch collections made with regional stoneware.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 9. MUJI TEMPLATE */}
+              {template === 'muji' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border border-[#1D1D1D] p-5 space-y-3 font-mono text-xs bg-[#F8F5F0]">
+                    <div className="flex justify-between items-center border-b border-[#1D1D1D] pb-2">
+                      <span className="font-bold text-sm tracking-tight text-[#1D1D1D]">MUJI DESIGN LEDGER</span>
+                      <span className="text-[10px] text-[#5C4632]">NO-BRAND QUALITY GOODS</span>
+                    </div>
+                    <p className="text-[11px] text-[#5C4632]">
+                      Pure functional minimalism: dimensions, materials, tolerances, and essential studio artifacts.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 10. ATELIER TEMPLATE */}
+              {template === 'atelier' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border border-[#8C6239] p-6 bg-[#FFFDF8] space-y-3">
+                    <span className="font-mono text-[10px] text-[#8C6239] uppercase tracking-widest block">Atelier Dossier</span>
+                    <h2 className="font-serif italic text-3xl text-[#2D2A26]">Bespoke Studio Commission Showcase</h2>
+                    <p className="font-sans text-xs text-[#716E68] max-w-xl">
+                      Private viewing rooms, direct patron dialogues, and handcrafted monolith architectural commissions.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 11. OBSIDIAN DARK TEMPLATE */}
+              {template === 'obsidian' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border border-[#262624] p-6 bg-[#0D0D0C] text-[#F3F0EA] space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#262624] pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="font-mono text-xs text-emerald-400 uppercase tracking-widest font-semibold">Obsidian Monolith Vault</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-stone-400">#NODE-VAULT-01</span>
+                    </div>
+                    <h2 className="font-sans font-bold text-3xl text-white">Ultra-Dark Brutalist Catalog & Telemetry</h2>
+                    <p className="font-mono text-xs text-stone-400 max-w-xl leading-relaxed">
+                      Pitch-black obsidian void, high-contrast luminescent telemetry, cryptographic provenance validation, and severe museum typography.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 12. NOCTURNE DARK TEMPLATE */}
+              {template === 'nocturne' && (
+                <div className={spacingStyles.sectionGap}>
+                  <div className="border border-[#1E293B] p-6 bg-[#0B111E] text-[#E8EDF5] space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
+                        <span className="font-mono text-xs text-[#D4AF37] uppercase tracking-widest font-bold">Nocturne Gilded Salon</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">Midnight Private Gallery</span>
+                    </div>
+                    <h2 className="font-serif text-3xl text-white">Nocturnal Gilded Provenance & Archival Salon</h2>
+                    <p className="font-sans text-xs text-slate-400 max-w-xl leading-relaxed">
+                      Deep Prussian midnight ground, gilded gold provenance seals, nocturnal atmospheric lighting, and high-prestige private viewing rooms.
+                    </p>
                   </div>
                 </div>
               )}

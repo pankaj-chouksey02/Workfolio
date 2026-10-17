@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
@@ -18,6 +18,26 @@ export function CreatorPortfolio({
   const [activeTab, setActiveTab] = useState<'artworks' | 'bio' | 'provenance'>('artworks');
   const [commissionOpen, setCommissionOpen] = useState(false);
   const [briefSent, setBriefSent] = useState(false);
+
+  // Read customized template from Portfolio Customizer
+  const [customizerState, setCustomizerState] = useState<{
+    template?: string;
+    canvasColor?: string;
+    typography?: string;
+    archetype?: string;
+    accentColor?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('workfolio:customizer_state');
+      if (saved) {
+        setCustomizerState(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const sampleWorks = [
     {
@@ -49,10 +69,52 @@ export function CreatorPortfolio({
     },
   ];
 
+  const bgClass = customizerState?.canvasColor === 'basalt'
+    ? 'bg-[#181816] text-[#F3F0EA]'
+    : customizerState?.canvasColor === 'obsidian'
+    ? 'bg-[#0D0D0C] text-[#F3F0EA]'
+    : customizerState?.canvasColor === 'midnight'
+    ? 'bg-[#0B111E] text-[#E8EDF5]'
+    : customizerState?.canvasColor === 'linen'
+    ? 'bg-[#C8B89A] text-[#2A221A]'
+    : customizerState?.canvasColor === 'parchment'
+    ? 'bg-[#C9A96B] text-[#2E2010]'
+    : customizerState?.canvasColor === 'ivory'
+    ? 'bg-[#F2E8D0] text-[#2A2218]'
+    : customizerState?.canvasColor === 'pearl'
+    ? 'bg-[#D4C5BF] text-[#251E1C]'
+    : customizerState?.canvasColor === 'sand'
+    ? 'bg-[#C4A06A] text-[#221608]'
+    : customizerState?.canvasColor === 'cream'
+    ? 'bg-[#FFFDF8] text-[#2D2A26]'
+    : customizerState?.canvasColor === 'bone'
+    ? 'bg-[#FFFFFF] text-[#141413]'
+    : 'bg-[#FAF8F5]';
+
+  const headingFontClass = customizerState?.typography === 'cormorant'
+    ? 'font-serif italic'
+    : customizerState?.typography === 'playfair'
+    ? 'font-serif'
+    : customizerState?.typography === 'inter'
+    ? 'font-sans font-medium'
+    : customizerState?.typography === 'manrope'
+    ? 'font-sans font-semibold'
+    : customizerState?.typography === 'ibm-plex-sans'
+    ? 'font-mono'
+    : customizerState?.typography === 'syne'
+    ? 'font-sans font-bold'
+    : 'font-serif';
+
+  const gridClass = customizerState?.archetype === 'editorial' || customizerState?.archetype === 'artisan' || customizerState?.archetype === 'studio'
+    ? 'grid-cols-1 md:grid-cols-2 gap-8'
+    : customizerState?.archetype === 'design'
+    ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
+    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8';
+
   return (
-    <div className="w-full bg-[#FAF8F5] pb-24">
+    <div className={`w-full min-h-screen pb-24 transition-colors ${bgClass}`}>
       {/* Hero Banner Header */}
-      <section className="relative w-full border-b border-[#E7E4DF] bg-white">
+      <section className="relative w-full border-b border-[#E7E4DF] bg-white/80 backdrop-blur-sm">
         <div className="max-w-[1440px] mx-auto px-5 md:px-12 lg:px-16 pt-12 pb-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex items-start gap-6">
@@ -65,8 +127,13 @@ export function CreatorPortfolio({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <h1 className="font-serif text-3xl sm:text-4xl text-[#141413] font-normal">{creatorName}</h1>
+                  <h1 className={`text-3xl sm:text-4xl text-[#141413] font-normal ${headingFontClass}`}>{creatorName}</h1>
                   <Badge variant="success">Verified Atelier</Badge>
+                  {customizerState?.template && (
+                    <span className="font-mono text-[10px] px-2 py-0.5 bg-black/5 text-[#716E68] uppercase tracking-wider rounded-xs">
+                      {customizerState.template}
+                    </span>
+                  )}
                 </div>
                 <p className="font-mono text-xs text-[#716E68]">atelier.art/@{slug} · Zurich, CH & Kyoto, JP</p>
                 <p className="font-sans text-sm text-[#56423d] max-w-xl">
@@ -125,7 +192,7 @@ export function CreatorPortfolio({
       {/* Main Tab Content */}
       <main className="max-w-[1440px] mx-auto px-5 md:px-12 lg:px-16 pt-10">
         {activeTab === 'artworks' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`grid ${gridClass}`}>
             {sampleWorks.map((work) => (
               <Card key={work.id} padding="none" className="group overflow-hidden">
                 <div className="relative aspect-[4/5] bg-[#efeeeb] overflow-hidden">

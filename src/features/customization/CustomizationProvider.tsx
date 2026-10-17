@@ -11,6 +11,9 @@ export interface CustomizationState {
   fontFamilySerif: string;
   colorPalette: string;
   accent: string;
+  bgColor: string;
+  textColor: string;
+  buttonColor: string;
   darkMode: boolean;
   spacing: "compact" | "comfortable" | "airy";
   layout: LayoutOption;
@@ -30,6 +33,9 @@ const defaultState: CustomizationState = {
   fontFamilySerif: "Georgia, 'Times New Roman', serif",
   colorPalette: "terracotta",
   accent: "#C86D4B",
+  bgColor: "#FAF7F3",
+  textColor: "#141413",
+  buttonColor: "#C86D4B",
   darkMode: false,
   spacing: "comfortable",
   layout: "columns",
@@ -71,8 +77,9 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     try {
       const root = document.documentElement;
       root.style.setProperty("--accent", settings.accent);
-      root.style.setProperty("--bg", settings.darkMode ? "#0f1111" : "#FAF8F5");
-      root.style.setProperty("--text", settings.darkMode ? "#F3F2F0" : "#141413");
+      root.style.setProperty("--bg", settings.bgColor || (settings.darkMode ? "#0f1111" : "#FAF8F5"));
+      root.style.setProperty("--text", settings.textColor || (settings.darkMode ? "#F3F2F0" : "#141413"));
+      root.style.setProperty("--button-color", settings.buttonColor || settings.accent);
       root.style.setProperty("--font-scale", String(settings.fontScale));
       root.style.setProperty("--img-filter", settings.imageFilter || "none");
       const gap = settings.spacing === "compact" ? "0.5rem" : settings.spacing === "airy" ? "2rem" : "1rem";
