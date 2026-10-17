@@ -6,18 +6,18 @@
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  
+
   // Database
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb+srv://pankajchouksey521_db_user:UyoOgTtqtzWS5W7V@cluster0.of40c84.mongodb.net/',
-  
+  MONGODB_URI: process.env.MONGODB_URI,
+
   // Cloudinary
-  CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dfkskvj9y',
-  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '375117913273191',
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || 'QO8bh-KyDF9LArEZekxxqerOCF8',
-  CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET || 'workfolio_preset',
-  
+  CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET,
+
   // Auth
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'development-secret-key-1234567890',
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
 };
 

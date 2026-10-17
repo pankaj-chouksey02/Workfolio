@@ -12,7 +12,7 @@ interface HeaderProps {
 const PRIMARY_NAV = [
   { label: 'Explore Creators', href: '/discover' },
   { label: 'Disciplines', href: '/disciplines' },
-  { label: 'Commissions', href: '/commissions' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'About', href: '/about' },
 ];
 

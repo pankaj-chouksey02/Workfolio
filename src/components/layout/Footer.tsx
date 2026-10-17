@@ -51,7 +51,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               <span className="font-mono text-[10px] uppercase text-[#716E68] tracking-widest block">Explore</span>
               <ul className="space-y-2 font-sans text-xs">
                 <li><Link href="/" className="text-[#56423d] hover:text-[#141413] transition-colors">Featured Masters</Link></li>
-                <li><Link href="/commissions" className="text-[#56423d] hover:text-[#141413] transition-colors">Open Commissions</Link></li>
+                <li><Link href="/pricing" className="text-[#56423d] hover:text-[#141413] transition-colors">Pricing Plans</Link></li>
                 <li><Link href="/studio/collections" className="text-[#56423d] hover:text-[#141413] transition-colors">Digital Pavilions</Link></li>
                 <li><Link href="/discover" className="text-[#56423d] hover:text-[#141413] transition-colors">Curatorial Notes</Link></li>
               </ul>
