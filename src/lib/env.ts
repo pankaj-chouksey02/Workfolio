@@ -2,19 +2,18 @@
  * Environment Variables Configuration and Validation
  */
 
-
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
   // Database
-  MONGODB_URI: process.env.MONGODB_URI,
+  MONGODB_URI: process.env.MONGODB_URI || '',
 
   // Cloudinary
-  CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
-  CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET,
+  CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
+  CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET || 'workfolio_preset',
 
   // Auth
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
