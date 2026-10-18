@@ -1,2781 +1,3482 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface PortfolioCustomizerScreenProps {
-    onNavigate: (path: string) => void;
+  onNavigate: (path: string) => void;
 }
 
-// Custom curated template presets
-export type CanvasColorTone = 'bone' | 'linen' | 'basalt' | 'parchment' | 'ivory' | 'pearl' | 'sand' | 'cream' | 'obsidian' | 'midnight';
-export type TypographyPairing = 'playfair' | 'cormorant' | 'syne' | 'inter' | 'manrope' | 'ibm-plex-sans';
-export type ArchetypeLayout = 'editorial' | 'gallery' | 'masonry' | 'auction' | 'artisan' | 'design' | 'studio';
+// 10 Distinct Master Templates for Indian Craft Disciplines
+export interface TemplatePreset {
+  id: string;
+  name: string;
+  craftSubhead: string;
+  categoryTag: 'Ceramics' | 'Textiles' | 'Metal' | 'Wood' | 'Heritage Arts' | 'Painting';
+  canvasColor: 'bone' | 'linen' | 'multani' | 'sandalwood' | 'terracotta' | 'indigo' | 'basalt' | 'sandstone' | 'forest' | 'teak';
+  typography: 'cormorant' | 'playfair' | 'cinzel' | 'syne' | 'space' | 'baskerville' | 'bodoni';
+  archetype: 'monograph' | 'grid' | 'story' | 'masonry' | 'split';
+  aspectRatio: '4:3' | '1:1' | '16:10' | '3:4' | '2:3' | '5:4';
+  borderStyle: 'hairline' | 'matting' | 'flush' | 'float' | 'rivets';
+  accentColor: string;
+  description: string;
+  swatches: string[];
+  pricingMode: 'transparent' | 'inquire' | 'range';
+  toggles: FeatureToggles;
+}
 
-interface TemplatePreset {
+export interface FeatureToggles {
+  // SECTIONS (from attached image)
+  showHeroSection: boolean;
+  showFeaturedWorkSection: boolean;
+  showCollectionsSection: boolean;
+  showAboutSection: boolean;
+  showCommissionsSection: boolean;
+  showContactSection: boolean;
+
+  // 7 IMPORTANT SECURITY & PROTECTION FEATURES
+  collectorPricing: boolean;     // Show ₹ INR prices vs "Inquire for Price"
+  inAppInquiryShield: boolean;   // Inquire via Atelier (masks phone numbers, prevents bypass)
+  escrowBadge: boolean;          // 50% Milestone Escrow Protection badge
+  insuredTransitBadge: boolean;  // All-India Insured Transit via Blue Dart
+  coaSeal: boolean;              // Digital Certificate of Authenticity (COA) seal
+  watermarkProtection: boolean;  // Archival studio watermark & right-click shield
+  devanagariScript: boolean;     // Dual-script Hindi/English craft title
+
+  // Supporting internal toggles
+  craftMaterialSpecs: boolean;
+  limitedEditionsStock: boolean;
+  commissionStatus: boolean;
+  studioVisitPolicy: boolean;
+  craftMasterBadge: boolean;
+  maskExactAddress: boolean;
+  directEmailShield: boolean;
+}
+
+export interface CatalogItem {
+  id: string;
+  title: string;
+  category: string;
+  medium: string;
+  dims: string;
+  year: string;
+  price: number;
+  status: 'Available' | 'Reserved' | 'Sold';
+  editionInfo?: string;
+  img: string;
+}
+
+export interface IndianArtistProfile {
+  id: 'aarav' | 'ananya' | 'devendra';
+  name: string;
+  studioName: string;
+  handle: string;
+  discipline: string;
+  hindiTitle: string;
+  location: string;
+  ledgerId: string;
+  heroHeadline: string;
+  heroSubheadline: string;
+  craftHeritageNote: string;
+  masterwork: {
     id: string;
-    name: string;
+    title: string;
+    hindiName: string;
+    specs: string;
+    year: string;
+    medium: string;
+    dims: string;
+    weight: string;
+    firingOrLoom: string;
+    provenance: string;
+    price: number;
+    status: 'Available' | 'Reserved' | 'In Private Collection';
+    images: {
+      front: string;
+      texture: string;
+      profile: string;
+      spatial: string;
+    };
+  };
+  artworks: CatalogItem[];
+  processLog: {
+    title: string;
     subtitle: string;
-    canvasColor: CanvasColorTone;
-    typography: TypographyPairing;
-    archetype: ArchetypeLayout;
-    accentColor: string;
-    description: string;
-    swatches: string[];
-    toggles: FeatureToggles;
+    spec1Label: string;
+    spec1Val: string;
+    spec2Label: string;
+    spec2Val: string;
+    spec3Label: string;
+    spec3Val: string;
+    spec4Label: string;
+    spec4Val: string;
+    summary: string;
+  };
+  bespoke: {
+    title: string;
+    leadTime: string;
+    minBudget: string;
+    terms: string;
+    ctaLabel: string;
+    accepting: boolean;
+  };
 }
 
-interface FeatureToggles {
-    provenanceBadge: boolean;
-    dualLanguage: boolean;
-    kilnProcessLog: boolean;
-    collectorPricing: boolean;
-    curatorFootnotes: boolean;
-    privateViewingRoom: boolean;
-    coaSeal: boolean;
-    microSpecs: boolean;
-    timelineChronology: boolean;
-    commissionGateway: boolean;
-}
-
-// Artist profiles for changing & enhancing preview content
-interface ArtistProfile {
-    id: 'elena' | 'kaito' | 'aurelia';
-    name: string;
-    discipline: string;
-    locations: string;
-    ledgerId: string;
-    heroHeadline: string;
-    heroSubheadline: string;
-    secondaryLanguage: {
-        label: string;
-        edition: string;
-        text: string;
-    };
-    representation: string;
-    publicCollections: string;
-    series: Array<{
-        name: string;
-        era: string;
-        count: string;
-        desc: string;
-        img: string;
-    }>;
+const INITIAL_INDIAN_PROFILES: Record<'aarav' | 'ananya' | 'devendra', IndianArtistProfile> = {
+  aarav: {
+    id: 'aarav',
+    name: 'Aarav Sharma',
+    studioName: 'Mitti & Co.',
+    handle: 'aarav.studio',
+    discipline: 'Wheel-Thrown Stoneware & Earthen Terracotta',
+    hindiTitle: 'मिट्टी और अग्नि · खुर्जा कुम्हार परंपरा',
+    location: 'Khurja Pottery Cluster, UP & Shahpur Jat, New Delhi',
+    ledgerId: '#KHJ-2026-AS',
+    heroHeadline: 'High-fire unglazed stoneware, Gangetic terracotta, and natural wood-ash vitrification.',
+    heroSubheadline: 'Handcrafted vessels, chai kulhads, and architectural floor urns shaped on traditional potter wheels. Rooted in centuries-old North Indian ceramic traditions, refined for contemporary homes.',
+    craftHeritageNote: 'Khurja has been India’s ceramic heart since the 14th century. Each vessel is single-fired with natural wood ash in traditional down-draught kilns without artificial chemical glazes.',
     masterwork: {
-        id: string;
-        title: string;
-        subtitle: string;
-        year: string;
-        medium: string;
-        dims: string;
-        weight: string;
-        firingOrCasting: string;
-        provenance: string;
-        price: string;
-        status: string;
-        images: {
-            front: string;
-            profile: string;
-            texture: string;
-            spatial: string;
-        };
-    };
-    artworks: Array<{
-        id: string;
-        title: string;
-        series: string;
-        year: string;
-        dims: string;
-        medium: string;
-        price: string;
-        status: string;
-        img: string;
-        provenance: string;
-    }>;
+      id: 'MITTI-2026-004',
+      title: 'Tectonic Terracotta Vessel No. 04',
+      hindiName: 'टेक्टोनिक टेराकोटा पात्र',
+      specs: 'Wood-Fired Gangetic Silt & Terra Sigillata',
+      year: '2026',
+      medium: 'High-fire local clay, natural tamarind wood-ash reduction (1,280°C)',
+      dims: '48 × 32 × 30 cm',
+      weight: '9.4 kg (Museum Crating)',
+      firingOrLoom: '72 Hours Continuous Wood Reduction',
+      provenance: 'India Art Fair 2026 Craft Pavilion',
+      price: 24000,
+      status: 'Available',
+      images: {
+        front: 'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1200&q=85',
+        texture: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=85',
+        profile: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=85',
+        spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
+      }
+    },
+    artworks: [
+      {
+        id: 'MITTI-2026-001',
+        title: 'Vitrified Stoneware Monolith 07',
+        category: 'Sculpture',
+        medium: 'Refractory stoneware, natural red pine fly ash melt',
+        dims: '72 × 28 × 22 cm',
+        year: '2026',
+        price: 32000,
+        status: 'Available',
+        editionInfo: 'Unique Original · 1 of 1',
+        img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'MITTI-2026-002',
+        title: 'Khurja Chai Kulhad Ensemble (Set of 4)',
+        category: 'Tableware',
+        medium: 'Wheel-thrown stoneware with raw clay slip interior',
+        dims: '8 × 7 cm each (180 ml)',
+        year: '2026',
+        price: 2200,
+        status: 'Available',
+        editionInfo: 'Batch Run · 8 Sets Left',
+        img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'MITTI-2026-003',
+        title: 'Smoked Black Slip Earthen Urn',
+        category: 'Vessels',
+        medium: 'Burnished terra sigillata smoked with rice husk reduction',
+        dims: '42 × 34 × 34 cm',
+        year: '2026',
+        price: 18500,
+        status: 'Available',
+        editionInfo: 'Unique Original · 1 of 1',
+        img: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'MITTI-2026-005',
+        title: 'Terracotta Architectural Planter',
+        category: 'Vessels',
+        medium: 'Hand-pressed coarse terracotta with forged iron base',
+        dims: '36 × 36 × 44 cm',
+        year: '2025',
+        price: 8500,
+        status: 'Reserved',
+        editionInfo: 'Edition of 12 (3 remaining)',
+        img: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=800&q=80'
+      }
+    ],
     processLog: {
-        title: string;
-        subtitle: string;
-        label1: string;
-        val1: string;
-        label2: string;
-        val2: string;
-        label3: string;
-        val3: string;
-        label4: string;
-        val4: string;
-        telemetryDesc: string;
-    };
-    audioNote: {
-        title: string;
-        duration: string;
-        location: string;
-    };
-    review: {
-        quote: string;
-        author: string;
-        role: string;
-    };
-}
-
-const ARTIST_PROFILES: Record<'elena' | 'kaito' | 'aurelia', ArtistProfile> = {
-    elena: {
-        id: 'elena',
-        name: 'Elena Vance',
-        discipline: 'Ceramic Sculptor · Monumental Stoneware',
-        locations: 'Zürich & Kyoto',
-        ledgerId: '#ZUR-2024-EV',
-        heroHeadline: 'Investigating geological fractures, thermal vitrification, and unglazed volcanic stoneware.',
-        heroSubheadline: 'Sculptural artifacts born from high-temperature wood kilns. Each monolith interrogates tectonic tension, mineral shrinkage, and the silent permanence of physical earth.',
-        secondaryLanguage: {
-            label: 'Curatorial Monograph Translation (日本語 / JP Catalog Edition)',
-            edition: 'Kyoto Craft Monograph #04',
-            text: '地質学的破砕、高温ガラス化、そして無釉薬の火山性陶器の研究。信楽の天然山土と穴窯120時間の薪還元焼成による構造的彫刻。各作品は、構造的緊張と地球の静謐な恒久性を表現しています。'
-        },
-        representation: 'Galerie Meili (Zürich)',
-        publicCollections: '14 Works Held (Kunstmuseum Basel, Kyoto Crafts Pavillion)',
-        series: [
-            {
-                name: 'Tectonic Vessels',
-                era: '2024 · Kyoto Anagama',
-                count: '9 Masterworks',
-                desc: 'Heavy ash melt, mineral fractures, and deep volcanic stoneware reduction.',
-                img: 'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Basalt Monoliths',
-                era: '2023 — 2024 · Zürich',
-                count: '6 Monoliths',
-                desc: 'Vertical structural pillars interrogating tectonic shifts and natural crust collapse.',
-                img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Sumi Ash Studies',
-                era: '2022 — 2023 · Shigaraki',
-                count: '12 Studies',
-                desc: 'Atmospheric charcoal deposits and unglazed refractory clay vitrification.',
-                img: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80'
-            }
-        ],
-        masterwork: {
-            id: 'EV-2024-004',
-            title: 'Tectonic Vessel No. 04',
-            subtitle: 'Wood-Fired Anagama Stoneware, 1320°C',
-            year: '2024',
-            medium: 'Unglazed Shigaraki Mountain Clay & Pine Ash',
-            dims: '48 × 32 × 30 cm',
-            weight: '14.2 kg (Museum Crating)',
-            firingOrCasting: '120 Hours Continuous Reduction',
-            provenance: '60th International Art Exhibition – La Biennale di Venezia',
-            price: '$18,400 USD',
-            status: 'Available',
-            images: {
-                front: 'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1200&q=85',
-                profile: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=85',
-                texture: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=85',
-                spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
-            }
-        },
-        artworks: [
-            {
-                id: 'EV-2024-001',
-                title: 'Vitrified Monolith 07',
-                series: 'Monoliths',
-                year: '2024',
-                dims: '72 × 28 × 22 cm',
-                medium: 'Refractory stoneware, natural red pine fly ash melt',
-                price: '$24,000 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Venice Biennale 2024'
-            },
-            {
-                id: 'EV-2024-002',
-                title: 'Tectonic Fracture Bowl',
-                series: 'Vessels',
-                year: '2024',
-                dims: '44 × 42 × 18 cm',
-                medium: 'Coarse mountain clay with thermal quartz stress fractures',
-                price: '$14,500 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Kyoto Crafts Pavillion 2024'
-            },
-            {
-                id: 'EV-2023-009',
-                title: 'Basalt Strata Pillar No. 03',
-                series: 'Monoliths',
-                year: '2023',
-                dims: '84 × 32 × 26 cm',
-                medium: 'Basalt stoneware with vitrified thermal fractures',
-                price: '$28,000 USD',
-                status: 'Institutional Reserve',
-                img: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Kunstmuseum Basel Loan'
-            },
-            {
-                id: 'EV-2024-005',
-                title: 'Atmospheric Ash Cylinder',
-                series: 'Vessels',
-                year: '2024',
-                dims: '52 × 24 × 24 cm',
-                medium: 'Single-fire wood kiln, continuous 120h reduction',
-                price: '$16,800 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Art Basel Parcours 2024'
-            },
-            {
-                id: 'EV-2023-014',
-                title: 'Geomorphic Cavity 02',
-                series: 'Vessels',
-                year: '2023',
-                dims: '40 × 38 × 32 cm',
-                medium: 'Unglazed red pine ash deposit, wood kiln',
-                price: '$12,000 USD',
-                status: 'Private Collection',
-                img: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Private Collection (Geneva)'
-            },
-            {
-                id: 'EV-2024-008',
-                title: 'Porous Tectonic Slab',
-                series: 'Monoliths',
-                year: '2024',
-                dims: '58 × 36 × 20 cm',
-                medium: 'High-temperature refractory stoneware',
-                price: '$19,500 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Zürich Kunsthalle Showcase'
-            }
-        ],
-        processLog: {
-            title: 'Studio Kiln & Anagama Telemetry Log',
-            subtitle: '120h Continuous Wood Reduction',
-            label1: 'Kiln Architecture',
-            val1: 'Single-Chamber Anagama Slope Kiln',
-            label2: 'Wood Fuel Species',
-            val2: 'Split Red Pine (Akamatsu), 10 Cords',
-            label3: 'Peak Thermocouple',
-            val3: '1,320°C (Cone 12 Vitrification)',
-            label4: 'Atmosphere Cycle',
-            val4: '48h Neutral → 72h Deep CO Reduction',
-            telemetryDesc: 'Vitrification occurs without chemical fluxes or applied glazes. Surface colorations are created exclusively by aerodynamic pine ash accumulation and mineral vaporization.'
-        },
-        audioNote: {
-            title: 'Listen: Anagama Kiln 120h Atmosphere (Shigaraki)',
-            duration: '02:45',
-            location: 'Recorded live at Shigaraki mountain slope'
-        },
-        review: {
-            quote: '“Vance’s vessels do not merely occupy architectural space; they condense geologic time into unglazed stoneware, confronting the viewer with the silent weight of tectonic memory.”',
-            author: 'Dr. Beatrix von Aesch',
-            role: 'Senior Curator of Decorative Arts & Sculpture, Kunsthaus Zürich'
-        }
+      title: 'Studio Kiln & Raw Material Telemetry',
+      subtitle: '72h Continuous Wood Firing Cycle · Khurja Clays',
+      spec1Label: 'Clay Sourcing',
+      spec1Val: 'Gangetic alluvial silt & Khurja stoneware ball clay',
+      spec2Label: 'Peak Temperature',
+      spec2Val: '1,280°C (High vitrification cone 10)',
+      spec3Label: 'Firing Fuel',
+      spec3Val: 'Dried babul & tamarind wood logs',
+      spec4Label: 'Atelier Escrow',
+      spec4Val: '100% Protected Payout upon Verified Dispatch',
+      summary: 'No synthetic lead glazes or chemical fluxes. Earthen hues emerge entirely from mineral reaction with flying wood ash during prolonged down-draught firing.'
     },
-    kaito: {
-        id: 'kaito',
-        name: 'Kaito Tanaka',
-        discipline: 'Spatial Optics · Dichroic Glass & Kinetic Light',
-        locations: 'Tokyo & Berlin',
-        ledgerId: '#TYO-2025-KT',
-        heroHeadline: 'Sculpting pure chromatic diffraction, optical glass prisms, and architectural luminance.',
-        heroSubheadline: 'Monolithic optical borosilicate structures that refract ambient daybeams into suspended spectrum fields. Each prism interacts dynamically with architectural circadian rhythms.',
-        secondaryLanguage: {
-            label: 'Curatorial Monograph Translation (Deutsch / Berlin Edition)',
-            edition: 'Neue Nationalgalerie Monograph #08',
-            text: 'Erforschung von optischer Beugung, dichroitischen Glasschichten und architektonischer Lichtarchitektur. Jedes Glasprisma bricht das Umgebungslicht in ein dynamisches Spektralfeld, das sich mit dem natürlichen Tageslauf transformiert.'
-        },
-        representation: 'Studio Tanaka / Esther Schipper (Berlin)',
-        publicCollections: '9 Works Held (Mori Art Museum Tokyo, Centre Pompidou Paris)',
-        series: [
-            {
-                name: 'Prismatic Monoliths',
-                era: '2024 · Berlin Studio',
-                count: '8 Columns',
-                desc: 'Precision-ground optical crown glass with dichroic vapor-deposited nanofilms.',
-                img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Diffraction Cavities',
-                era: '2023 — 2025 · Tokyo',
-                count: '11 Installations',
-                desc: 'Recessed wall apertures capturing low-angled natural sunbeams to emit spectral gradients.',
-                img: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Spectral Slabs',
-                era: '2023 · Venice Glass Week',
-                count: '5 Works',
-                desc: 'Massive slumped optical blocks annealed over 180 continuous hours in Murano.',
-                img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80'
-            }
-        ],
-        masterwork: {
-            id: 'KT-2025-001',
-            title: 'Prism Horizon No. 06',
-            subtitle: 'Dichroic Crown Optical Borosilicate, Hand-Polished',
-            year: '2025',
-            medium: 'Multi-layer Titanium Oxide Nanocoating & Float Glass',
-            dims: '95 × 38 × 22 cm',
-            weight: '38.5 kg (Custom Museum Armature)',
-            firingOrCasting: '180h Controlled Lehr Annealing',
-            provenance: 'Art Basel Unlimited 2025 Special Feature',
-            price: '$42,000 USD',
-            status: 'Available',
-            images: {
-                front: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=85',
-                profile: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=85',
-                texture: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=85',
-                spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
-            }
-        },
-        artworks: [
-            {
-                id: 'KT-2025-003',
-                title: 'Chromatic Refraction Cube',
-                series: 'Prismatic',
-                year: '2025',
-                dims: '35 × 35 × 35 cm',
-                medium: 'Solid optical borosilicate with 99.8% light transmission',
-                price: '$21,500 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Tokyo Gendai 2025'
-            },
-            {
-                id: 'KT-2024-012',
-                title: 'Spectral Blade Installation',
-                series: 'Prismatic',
-                year: '2024',
-                dims: '120 × 18 × 12 cm',
-                medium: 'Dichroic bevelled slab with architectural anchor mount',
-                price: '$34,000 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Venice Glass Week Showcase'
-            },
-            {
-                id: 'KT-2024-008',
-                title: 'Luminous Aperture Disc',
-                series: 'Diffraction',
-                year: '2024',
-                dims: '60 × 60 × 6 cm',
-                medium: 'Circular fused optic lens with iridescent coating',
-                price: '$26,000 USD',
-                status: 'Institutional Reserve',
-                img: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Mori Art Museum Collection'
-            },
-            {
-                id: 'KT-2023-019',
-                title: 'Dichroic Column IV',
-                series: 'Prismatic',
-                year: '2023',
-                dims: '80 × 25 × 25 cm',
-                medium: 'Slumped silica glass with vacuum vapor deposition',
-                price: '$29,000 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Art Cologne 2024'
-            }
-        ],
-        processLog: {
-            title: 'Optical Vacuum Deposition & Lehr Annealing Log',
-            subtitle: '180h Continuous Thermal Gradient Cooling',
-            label1: 'Substrate Spec',
-            val1: 'Schott N-BK7 Ultra-Pure Crown Glass',
-            label2: 'Nanofilm Coating',
-            val2: '24-Layer Alternating TiO2 & SiO2 Vacuum Vapor',
-            label3: 'Annealing Chamber',
-            val3: '580°C Transition → 0.2°C/hr Stress Release',
-            label4: 'Surface Polish',
-            val4: 'Lambda/10 Optical Surface Wavefront Flatness',
-            telemetryDesc: 'Zero visible grain or bubbles. Light passing through undergoes wavelength separation, casting radiant spectral gradients across interior walls with zero electrical wiring.'
-        },
-        audioNote: {
-            title: 'Listen: Studio Glass Annealing Frequency (Berlin)',
-            duration: '03:12',
-            location: 'Recorded in ultrasonic polishing laboratory'
-        },
-        review: {
-            quote: '“Tanaka treats light not as illumination, but as physical mass. In his monoliths, optical physics transcends into transcendent spatial meditation.”',
-            author: 'Prof. Julian Lindemann',
-            role: 'Curator of Contemporary Glass & Spatial Media, Hamburger Bahnhof Berlin'
-        }
-    },
-    aurelia: {
-        id: 'aurelia',
-        name: 'Aurelia Vane',
-        discipline: 'Monumental Bronze · Lost-Wax Casting & Obsidian',
-        locations: 'London & Milan',
-        ledgerId: '#LDN-2025-AV',
-        heroHeadline: 'Monumental patinated bronze, raw volcanic obsidian, and lost-wax foundry casting.',
-        heroSubheadline: 'Brutalist sculptural totems that explore balance, metallurgical oxidation, and deep geologic memory. Cast in historic Italian foundries using century-old ceramic shell protocols.',
-        secondaryLanguage: {
-            label: 'Curatorial Monograph Translation (Italiano / Milan Triennale Edition)',
-            edition: 'Triennale Milano Monograph #12',
-            text: 'Indagine sul bronzo monumentale patinato, l’ossidiana vulcanica grezza e la fusione a cera persa. Ciascuna scultura interroga l’equilibrio statico, l’ossidazione metallurgica e la memoria profonda della materia.'
-        },
-        representation: 'Victoria Miro Gallery (London)',
-        publicCollections: '18 Works Held (Tate Modern, Swiss National Museum, Yorkshire Sculpture Park)',
-        series: [
-            {
-                name: 'Tectonic Monoliths',
-                era: '2024 · Verona Foundry',
-                count: '7 Totems',
-                desc: 'Lost-wax cast bronze with sulfur-liver patinas and raw obsidian insets.',
-                img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Equilibrium Arcs',
-                era: '2023 — 2025 · London',
-                count: '10 Sculptures',
-                desc: 'Counterbalanced cantilever bronze elements resting on solitary knife-edge pivots.',
-                img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80'
-            },
-            {
-                name: 'Obsidian Stele',
-                era: '2022 — 2024 · Milan',
-                count: '6 Works',
-                desc: 'High-polish volcanic glass enveloped in bronze armature brackets.',
-                img: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=800&q=80'
-            }
-        ],
-        masterwork: {
-            id: 'AV-2025-009',
-            title: 'Cantilever Totem No. 02',
-            subtitle: 'Lost-Wax Bronze with Natural Sulfur Patina & Obsidian',
-            year: '2025',
-            medium: 'Cast Silicon Bronze & Icelandic Obsidian Stone',
-            dims: '112 × 42 × 34 cm',
-            weight: '64 kg (Reinforced Plinth Mount)',
-            firingOrCasting: 'Foundry Pour at 1,180°C in Verona',
-            provenance: 'Frieze Sculpture London 2025 Showcase',
-            price: '$58,000 USD',
-            status: 'Available',
-            images: {
-                front: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=85',
-                profile: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=85',
-                texture: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=1200&q=85',
-                spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
-            }
-        },
-        artworks: [
-            {
-                id: 'AV-2025-001',
-                title: 'Obsidian Fracture Column',
-                series: 'Monoliths',
-                year: '2025',
-                dims: '96 × 32 × 28 cm',
-                medium: 'Cast bronze shell with trapped volcanic glass heart',
-                price: '$38,000 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Milan Design Week Triennale'
-            },
-            {
-                id: 'AV-2024-004',
-                title: 'Kinetic Equilibrium Stele',
-                series: 'Equilibrium',
-                year: '2024',
-                dims: '74 × 48 × 22 cm',
-                medium: 'Counterbalanced solid bronze on tungsten pivot',
-                price: '$32,000 USD',
-                status: 'Available',
-                img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Frieze London Exhibition'
-            },
-            {
-                id: 'AV-2024-011',
-                title: 'Porous Basalt Vessel',
-                series: 'Monoliths',
-                year: '2024',
-                dims: '50 × 44 × 36 cm',
-                medium: 'Oxidized green bronze patina with charcoal wax',
-                price: '$24,000 USD',
-                status: 'Institutional Reserve',
-                img: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=800&q=80',
-                provenance: 'Tate Modern Sculpture Collection'
-            }
-        ],
-        processLog: {
-            title: 'Lost-Wax Foundry Casting & Chemical Patination Log',
-            subtitle: 'Verona Artisan Foundry Batch #42',
-            label1: 'Alloy Composition',
-            val1: 'C95400 Aluminum Bronze (High Tensile Rigidity)',
-            label2: 'Melt Temperature',
-            val2: '1,180°C Induction Crucible Pour',
-            label3: 'Patination Chemistry',
-            val3: 'Potassium Polysulfide (Liver of Sulfur) & Cupric Nitrate',
-            label4: 'Surface Sealing',
-            val4: 'Microcrystalline Renaissance Wax, 3 Hand Coats',
-            telemetryDesc: 'Sculptures are hand-carved in microcrystalline wax, invested in refractory ceramic slurry, dewaxed at 900°C, and cast with molten bronze. Patinas are torched onto the warm metal to produce deep archival tones.'
-        },
-        audioNote: {
-            title: 'Listen: Foundry Bronze Pour & Anvil Resonance',
-            duration: '01:58',
-            location: 'Recorded in historic Verona casting foundry'
-        },
-        review: {
-            quote: '“Aurelia Vane redefines contemporary sculpture with brutalist honesty. Her bronzes hold a tectonic gravity that resonates within any monumental architectural space.”',
-            author: 'Dame Alistair Sterling',
-            role: 'Curator Emeritus, Yorkshire Sculpture Park & Royal Academy'
-        }
+    bespoke: {
+      title: 'Site-Specific Ceramic Commissions',
+      leadTime: '4 to 6 weeks crafting & kiln curing',
+      minBudget: '₹25,000',
+      terms: '50% advance milestone escrow deposit; remaining 50% upon verified crated courier pickup.',
+      ctaLabel: 'Initiate Commission Inquiry',
+      accepting: true
     }
+  },
+  ananya: {
+    id: 'ananya',
+    name: 'Ananya Sengupta',
+    studioName: 'Vastra Studio',
+    handle: 'ananya.textiles',
+    discipline: 'Pit-Loom Mulberry Silk & Wild Indigo Weaving',
+    hindiTitle: 'वस्त्र और नील · बनारस हथकरघा शिल्प',
+    location: 'Kotwa Weavers Quarter, Varanasi, Uttar Pradesh',
+    ledgerId: '#VNS-2026-AS',
+    heroHeadline: 'Hand-spun Varanasi mulberry silk, organic Chettinad indigo, and heritage pit-loom textures.',
+    heroSubheadline: 'Bespoke architectural textile tapestries and limited stole editions woven by master artisan families along the holy ghats of Kashi.',
+    craftHeritageNote: 'Pit-loom silk weaving in Varanasi dates back over 1,000 years. Each tapestry takes 6 to 12 weeks of meticulous warp setup and hand-beating.',
+    masterwork: {
+      id: 'VASTRA-2026-012',
+      title: 'Indigo Warp Architectural Tapestry',
+      hindiName: 'नील वर्ण वस्त्र शिल्पकला',
+      specs: 'Pure Handspun Mulberry Silk & Wild Indigo',
+      year: '2026',
+      medium: 'Handloom pit-weave, natural fermented indigo vat, brass hanging rod',
+      dims: '180 × 90 cm',
+      weight: '1.8 kg (Rolled Museum Tube)',
+      firingOrLoom: '140 Hours Manual Pit-Loom Weaving',
+      provenance: 'National Handloom Heritage Showcase 2026',
+      price: 36000,
+      status: 'Available',
+      images: {
+        front: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=1200&q=85',
+        texture: 'https://images.unsplash.com/photo-1606744837616-56c9a5c6a6eb?auto=format&fit=crop&w=1200&q=85',
+        profile: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=85',
+        spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
+      }
+    },
+    artworks: [
+      {
+        id: 'VASTRA-2026-001',
+        title: 'Kashi Dawn Tussar Silk Hanging',
+        category: 'Tapestry',
+        medium: 'Wild tussar silk with madder root border',
+        dims: '140 × 60 cm',
+        year: '2026',
+        price: 26000,
+        status: 'Available',
+        editionInfo: 'Unique Original · 1 of 1',
+        img: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'VASTRA-2026-002',
+        title: 'Indigo Resist Handloom Stole',
+        category: 'Wearables',
+        medium: 'Maheshwari fine cotton-silk with hand-tied resist dots',
+        dims: '200 × 55 cm',
+        year: '2026',
+        price: 3800,
+        status: 'Available',
+        editionInfo: 'Limited Run · 5 Available',
+        img: 'https://images.unsplash.com/photo-1606744837616-56c9a5c6a6eb?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'VASTRA-2026-003',
+        title: 'Brocade Jacquard Loom Sample',
+        category: 'Tapestry',
+        medium: 'Hand-dyed organic eri silk with pure zai thread',
+        dims: '60 × 60 cm (Framed)',
+        year: '2025',
+        price: 14500,
+        status: 'Available',
+        editionInfo: 'Edition of 6 · 2 left',
+        img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'
+      }
+    ],
+    processLog: {
+      title: 'Handloom Pit-Loom & Indigo Vat Telemetry',
+      subtitle: 'Kotwa Weaver Guild · 100% Organic Indigo Fermentation',
+      spec1Label: 'Yarn Fiber',
+      spec1Val: 'Organic mulberry & wild tribal tussar silk',
+      spec2Label: 'Loom Setup',
+      spec2Val: 'Traditional 4-pedal wooden pit-loom',
+      spec3Label: 'Dye Reduction',
+      spec3Val: 'Live natural indigo vat with jaggery & lime',
+      spec4Label: 'Atelier Escrow',
+      spec4Val: '100% Protected Payout upon Verified Dispatch',
+      summary: 'Every thread is hand-spun on traditional charkhas before warping. No synthetic chemical fixing agents or aniline dyes are used.'
+    },
+    bespoke: {
+      title: 'Architectural Textile Installations',
+      leadTime: '6 to 10 weeks warp setup and loom weave',
+      minBudget: '₹35,000',
+      terms: '50% advance milestone escrow deposit; remaining 50% upon verified crated courier pickup.',
+      ctaLabel: 'Discuss Custom Tapestry',
+      accepting: true
+    }
+  },
+  devendra: {
+    id: 'devendra',
+    name: 'Devendra Kashyap',
+    studioName: 'Dhaatu Atelier',
+    handle: 'devendra.bronze',
+    discipline: 'Lost-Wax Dhokra Metallurgy & Bell-Metal Casting',
+    hindiTitle: 'धातु और मोम · बस्तर ढोकरा परंपरा',
+    location: 'Kondagaon Tribal Cluster, Bastar, Chhattisgarh',
+    ledgerId: '#BST-2026-DK',
+    heroHeadline: 'Ancient 4,000-year lost-wax bell metal casting, beeswax coil detailing, and earthen furnace firing.',
+    heroSubheadline: 'Singular tribal bronze sculptures, totems, and ceremonial lamps handcrafted without standard moulds. Every piece is intrinsically non-reproducible.',
+    craftHeritageNote: 'Dhokra casting in Bastar is an unbroken 4,000-year metallurgical tradition traced back to Mohenjo-daro’s Dancing Girl. Each clay mould is destroyed upon pouring.',
+    masterwork: {
+      id: 'DHAATU-2026-008',
+      title: 'Vriksha Tribal Spirit Monolith',
+      hindiName: 'वृक्ष आत्मा ढोकरा मूर्ति',
+      specs: 'Lost-Wax Cast Bell Metal (78% Copper, 22% Tin)',
+      year: '2026',
+      medium: 'Solid bronze bell metal, organic beeswax modeling, charcoal fire patina',
+      dims: '56 × 24 × 18 cm',
+      weight: '11.8 kg (Museum Mount)',
+      firingOrLoom: 'Traditional Pit Furnace Pour at 1,150°C',
+      provenance: 'Tribal Arts Triennale New Delhi 2026',
+      price: 28500,
+      status: 'Available',
+      images: {
+        front: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=85',
+        texture: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=85',
+        profile: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=85',
+        spatial: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'
+      }
+    },
+    artworks: [
+      {
+        id: 'DHAATU-2026-001',
+        title: 'Bastar Tribal Bison Horn Totem',
+        category: 'Sculpture',
+        medium: 'Solid bell metal with beeswax coiled surface detail',
+        dims: '44 × 18 × 14 cm',
+        year: '2026',
+        price: 18500,
+        status: 'Available',
+        editionInfo: 'Unique Original · 1 of 1',
+        img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'DHAATU-2026-002',
+        title: 'Dhokra Incense Burner & Sacred Diya',
+        category: 'Tableware',
+        medium: 'Cast brass bell metal with antique charcoal polish',
+        dims: '18 × 14 × 12 cm',
+        year: '2026',
+        price: 3800,
+        status: 'Available',
+        editionInfo: 'Batch Run · 4 Available',
+        img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80'
+      },
+      {
+        id: 'DHAATU-2026-003',
+        title: 'Geometric Village Musician Ensemble',
+        category: 'Sculpture',
+        medium: 'Series of 3 cast bell-metal figures playing traditional damru',
+        dims: '24 × 10 × 8 cm each',
+        year: '2026',
+        price: 14000,
+        status: 'Available',
+        editionInfo: 'Set of 3 · 1 Available',
+        img: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80'
+      }
+    ],
+    processLog: {
+      title: 'Lost-Wax Metallurgy & Clay Core Log',
+      subtitle: 'Ancient 4,000-Year Cire-Perdue Process · Bastar',
+      spec1Label: 'Metal Alloy',
+      spec1Val: '78% Copper, 22% Tin (Bell Metal / Kansa)',
+      spec2Label: 'Pour Temperature',
+      spec2Val: '1,150°C Open Charcoal Hearth',
+      spec3Label: 'Core Medium',
+      spec3Val: 'Termite hill clay & organic rice straw binding',
+      spec4Label: 'Atelier Escrow',
+      spec4Val: 'Advance held safely until courier pickup',
+      summary: 'Every single line and braid is hand-rolled from wild beeswax mixed with dammar resin. The clay mould is smashed to release the cooled cast, guaranteeing that every sculpture is singular.'
+    },
+    bespoke: {
+      title: 'Monolithic Bronze Sculptures',
+      leadTime: '8 to 12 weeks wax sculpting & furnace pour',
+      minBudget: '₹40,000',
+      terms: '50% advance milestone escrow deposit; remaining 50% upon verified crated courier pickup.',
+      ctaLabel: 'Commission Dhokra Sculpture',
+      accepting: true
+    }
+  }
 };
 
 export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCustomizerScreenProps) {
-    // Viewport mode: desktop, tablet, mobile
-    const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  // Viewport mode: desktop, tablet, mobile
+  const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  
+  // Full Preview expansion toggle
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState<boolean>(false);
 
-    // Preview scale mode: 'fit' to column or 'actual' full resolution (scrollable)
-    const [previewScaleMode, setPreviewScaleMode] = useState<'fit' | 'actual'>('fit');
+  // Small screen host tab switcher (< lg screens)
+  const [hostSmallScreenTab, setHostSmallScreenTab] = useState<'controls' | 'preview'>('preview');
 
-    // Scroll experience mode: 'frame' (interactive in-mockup scroll) vs 'canvas' (full-length artboard)
-    const [scrollMode, setScrollMode] = useState<'frame' | 'canvas'>('frame');
+  // Primary Customizer Tabs: Templates (10), Content (Section-wise), Style, Security
+  const [expandedSections, setExpandedSections] = useState({ templates: true, studio: false, styles: false, security: false });
 
-    // Full Preview expansion toggle (collapses sidebar to show full portfolio)
-    const [isPreviewExpanded, setIsPreviewExpanded] = useState<boolean>(false);
+  // Sub-section switcher inside "Studio (Content)" tab
+  const [studioEditSection, setStudioEditSection] = useState<'hero' | 'masterwork' | 'gallery' | 'process' | 'bespoke' | 'about' | 'policies'>('hero');
 
-    // Host screen small viewport tab switcher (controls vs preview on < lg screens)
-    const [hostSmallScreenTab, setHostSmallScreenTab] = useState<'controls' | 'preview'>('preview');
+  // Selected Artist Preset
+  const [selectedArtistId, setSelectedArtistId] = useState<'aarav' | 'ananya' | 'devendra'>('aarav');
+  const baseArtist = INITIAL_INDIAN_PROFILES[selectedArtistId];
 
-    // Simulated Mobile Navigation Menu Drawer toggle
-    const [simulatedMobileNavOpen, setSimulatedMobileNavOpen] = useState(false);
+  // Template category filter in templates tab
+  const [templateFilter, setTemplateFilter] = useState<string>('All');
 
-    // Active customizer panel tab
-    const [activeTab, setActiveTab] = useState<'toggles' | 'templates' | 'artist' | 'atmosphere' | 'layout'>('toggles');
+  // Editable Profile Overrides (Live in preview)
+  const [customStudioName, setCustomStudioName] = useState(baseArtist.studioName);
+  const [customArtistName, setCustomArtistName] = useState(baseArtist.name);
+  const [customHandle, setCustomHandle] = useState(baseArtist.handle);
+  const [customLocation, setCustomLocation] = useState(baseArtist.location);
+  const [customDiscipline, setCustomDiscipline] = useState(baseArtist.discipline);
+  const [customHindiTitle, setCustomHindiTitle] = useState(baseArtist.hindiTitle);
+  const [customHeadline, setCustomHeadline] = useState(baseArtist.heroHeadline);
+  const [customSubheadline, setCustomSubheadline] = useState(baseArtist.heroSubheadline);
+  const [heroLayoutVariant, setHeroLayoutVariant] = useState<'monograph' | 'split' | 'architectural'>('monograph');
+  const [heroCtaLabel, setHeroCtaLabel] = useState('Inquire on Works');
+  const [studioPhotoUrl, setStudioPhotoUrl] = useState('https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=85');
 
-    // Active Artist Edition (Elena Vance, Kaito Tanaka, Aurelia Vane)
-    const [activeArtistId, setActiveArtistId] = useState<'elena' | 'kaito' | 'aurelia'>('elena');
-    const currentArtist = ARTIST_PROFILES[activeArtistId];
+  // Masterwork Overrides
+  const [masterworkTitle, setMasterworkTitle] = useState(baseArtist.masterwork.title);
+  const [masterworkHindiName, setMasterworkHindiName] = useState(baseArtist.masterwork.hindiName);
+  const [masterworkSpecs, setMasterworkSpecs] = useState(baseArtist.masterwork.specs);
+  const [masterworkMedium, setMasterworkMedium] = useState(baseArtist.masterwork.medium);
+  const [masterworkPrice, setMasterworkPrice] = useState(baseArtist.masterwork.price);
+  const [masterworkFiring, setMasterworkFiring] = useState(baseArtist.masterwork.firingOrLoom);
+  const [masterworkProvenance, setMasterworkProvenance] = useState(baseArtist.masterwork.provenance);
+  const [masterworkDims, setMasterworkDims] = useState(baseArtist.masterwork.dims);
+  const [masterworkWeight, setMasterworkWeight] = useState(baseArtist.masterwork.weight);
+  const [masterworkStatus, setMasterworkStatus] = useState(baseArtist.masterwork.status);
+  const [masterworkImgFront, setMasterworkImgFront] = useState(baseArtist.masterwork.images.front);
+  const [masterworkImgTexture, setMasterworkImgTexture] = useState(baseArtist.masterwork.images.texture);
+  const [masterworkImgProfile, setMasterworkImgProfile] = useState(baseArtist.masterwork.images.profile);
+  const [masterworkImgSpatial, setMasterworkImgSpatial] = useState(baseArtist.masterwork.images.spatial);
 
-    // Visual design settings
-    const [archetype, setArchetype] = useState<ArchetypeLayout>('editorial');
-    const [typography, setTypography] = useState<TypographyPairing>('cormorant');
-    const [canvasColor, setCanvasColor] = useState<CanvasColorTone>('basalt');
-    const [accentColor, setAccentColor] = useState('#C25E3E');
-    const [gridDensity, setGridDensity] = useState<'airy' | 'balanced' | 'compact'>('balanced');
-    const [activeTemplate, setActiveTemplate] = useState<string>('venice');
+  // Gallery Overrides
+  const [galleryTitle, setGalleryTitle] = useState('Studio Catalog & Editions');
+  const [gallerySubtitle, setGallerySubtitle] = useState('Available Works & Numbered Editions');
+  const [galleryLayout, setGalleryLayout] = useState<'3-col' | '2-col' | 'masonry'>('3-col');
+  const [artworksList, setArtworksList] = useState<CatalogItem[]>(baseArtist.artworks);
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState('All');
 
-    // Load persisted customizer state from localStorage on mount
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem('workfolio:customizer_state');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.template) setActiveTemplate(parsed.template);
-                if (parsed.canvasColor) setCanvasColor(parsed.canvasColor);
-                if (parsed.typography) setTypography(parsed.typography);
-                if (parsed.archetype) setArchetype(parsed.archetype);
-                if (parsed.accentColor) setAccentColor(parsed.accentColor);
-                if (parsed.toggles) setToggles(parsed.toggles);
-                if (parsed.artistId && ARTIST_PROFILES[parsed.artistId as 'elena' | 'kaito' | 'aurelia']) {
-                    setActiveArtistId(parsed.artistId as 'elena' | 'kaito' | 'aurelia');
-                }
-            }
-        } catch {
-            // Ignore localStorage errors
-        }
-    }, []);
+  // Process & Telemetry Overrides
+  const [processTitle, setProcessTitle] = useState(baseArtist.processLog.title);
+  const [processSubtitle, setProcessSubtitle] = useState(baseArtist.processLog.subtitle);
+  const [spec1Label, setSpec1Label] = useState(baseArtist.processLog.spec1Label);
+  const [spec1Val, setSpec1Val] = useState(baseArtist.processLog.spec1Val);
+  const [spec2Label, setSpec2Label] = useState(baseArtist.processLog.spec2Label);
+  const [spec2Val, setSpec2Val] = useState(baseArtist.processLog.spec2Val);
+  const [spec3Label, setSpec3Label] = useState(baseArtist.processLog.spec3Label);
+  const [spec3Val, setSpec3Val] = useState(baseArtist.processLog.spec3Val);
+  const [spec4Label, setSpec4Label] = useState(baseArtist.processLog.spec4Label);
+  const [spec4Val, setSpec4Val] = useState(baseArtist.processLog.spec4Val);
+  const [processSummary, setProcessSummary] = useState(baseArtist.processLog.summary);
+  const [guildTag, setGuildTag] = useState('Certified Indian Master Craftsman · GI Registry Authenticated');
 
-    // Selected work filter tab inside preview
-    const [previewWorkFilter, setPreviewWorkFilter] = useState<'all' | 'monoliths' | 'vessels' | 'available'>('all');
+  // Bespoke Commissions Section Overrides
+  const [bespokeTitle, setBespokeTitle] = useState(baseArtist.bespoke.title);
+  const [bespokeLeadTime, setBespokeLeadTime] = useState(baseArtist.bespoke.leadTime);
+  const [bespokeMinBudget, setBespokeMinBudget] = useState(baseArtist.bespoke.minBudget);
+  const [bespokeTerms, setBespokeTerms] = useState(baseArtist.bespoke.terms);
+  const [bespokeCtaLabel, setBespokeCtaLabel] = useState(baseArtist.bespoke.ctaLabel);
+  const [bespokeAccepting, setBespokeAccepting] = useState(baseArtist.bespoke.accepting);
 
-    // Audio statement simulator
-    const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  // About & Heritage Overrides
+  const [craftHeritageNote, setCraftHeritageNote] = useState(baseArtist.craftHeritageNote);
+  const [visitPolicyText, setVisitPolicyText] = useState('Studio visits strictly by prior Atelier platform appointment on select weekdays - no walk-ins.');
+  const [pressMention, setPressMention] = useState('Featured in Architectural Digest India, India Art Fair 2026, and Crafts Council of India.');
 
-    // 360 Inspection angle view (front, profile, texture, spatial)
-    const [masterworkAngle, setMasterworkAngle] = useState<'front' | 'profile' | 'texture' | 'spatial'>('front');
+  // Policies & Shipping
+  const [shippingPolicyText, setShippingPolicyText] = useState('All-India insured museum crating via Blue Dart & Delhivery fine art courier.');
+  const [transitInsuranceActive, setTransitInsuranceActive] = useState(true);
 
-    // Inquiry form interactive state
-    const [inquirySubmitted, setInquirySubmitted] = useState(false);
-    const [selectedBudget, setSelectedBudget] = useState('$20,000 — $40,000');
+  // Design Settings (Style Tab)
+  const [canvasColor, setCanvasColor] = useState<'bone' | 'linen' | 'multani' | 'sandalwood' | 'terracotta' | 'indigo' | 'basalt' | 'sandstone' | 'forest' | 'teak'>('bone');
+  const [typography, setTypography] = useState<'cormorant' | 'playfair' | 'cinzel' | 'syne' | 'space' | 'baskerville' | 'bodoni'>('cormorant');
+  const [archetype, setArchetype] = useState<'monograph' | 'grid' | 'story' | 'masonry' | 'split'>('monograph');
+  const [aspectRatio, setAspectRatio] = useState<'4:3' | '1:1' | '16:10' | '3:4' | '2:3' | '5:4'>('4:3');
+  const [borderStyle, setBorderStyle] = useState<'hairline' | 'matting' | 'flush' | 'float' | 'rivets'>('hairline');
+  const [typeScale, setTypeScale] = useState<'editorial' | 'monumental' | 'compact'>('editorial');
+  const [headerStyle, setHeaderStyle] = useState<'classical' | 'centered' | 'inline'>('classical');
+  const [accentColor, setAccentColor] = useState('#C25E3E');
+  const [pricingMode, setPricingMode] = useState<'transparent' | 'inquire' | 'range'>('transparent');
+  const [activeTemplateId, setActiveTemplateId] = useState<string>('kora');
 
-    // Interactive Preview Modals & Feature States
-    const [coaModalOpen, setCoaModalOpen] = useState(false);
-    const [vipUnlocked, setVipUnlocked] = useState(false);
-    const [vipPasscode, setVipPasscode] = useState('');
+  // Interactive Feature & Commerce Toggles (Security Tab & Sections)
+  const [toggles, setToggles] = useState<FeatureToggles>({
+    showHeroSection: true,
+    showFeaturedWorkSection: true,
+    showCollectionsSection: true,
+    showAboutSection: true,
+    showCommissionsSection: true,
+    showContactSection: true,
 
-    // Interactive Feature Toggles (Turn on/off with instant preview response)
-    const [toggles, setToggles] = useState<FeatureToggles>({
-        provenanceBadge: true,
-        dualLanguage: true,
-        kilnProcessLog: true,
+    collectorPricing: true,
+    inAppInquiryShield: true,
+    escrowBadge: true,
+    insuredTransitBadge: true,
+    coaSeal: true,
+    watermarkProtection: false,
+    devanagariScript: true,
+
+    craftMaterialSpecs: true,
+    limitedEditionsStock: true,
+    commissionStatus: true,
+    studioVisitPolicy: true,
+    craftMasterBadge: true,
+    maskExactAddress: true,
+    directEmailShield: true,
+  });
+
+  // Masterwork viewing angle in preview
+  const [masterworkAngle, setMasterworkAngle] = useState<'front' | 'texture' | 'profile' | 'spatial'>('front');
+
+  // Interactive Modals & Drawers inside Preview
+  const [activeInquiryArtwork, setActiveInquiryArtwork] = useState<string | null>(null);
+  const [inquiryName, setInquiryName] = useState('');
+  const [inquiryCity, setInquiryCity] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [inquirySent, setInquirySent] = useState(false);
+
+  // Certificate of Authenticity Modal
+  const [coaModalArtwork, setCoaModalArtwork] = useState<any | null>(null);
+
+  // Zoom Inspection Lightbox Modal
+  const [zoomedImage, setZoomedImage] = useState<{ url: string; title: string; specs: string } | null>(null);
+
+  // Bespoke Commission Inquiry Modal
+  const [isBespokeModalOpen, setIsBespokeModalOpen] = useState(false);
+  const [bespokeClientName, setBespokeClientName] = useState('');
+  const [bespokeClientCity, setBespokeClientCity] = useState('');
+  const [bespokeBudget, setBespokeBudget] = useState('₹50,000');
+  const [bespokeScope, setBespokeScope] = useState('');
+  const [bespokeSent, setBespokeSent] = useState(false);
+
+  // Add Artwork Modal
+  const [isAddArtworkOpen, setIsAddArtworkOpen] = useState(false);
+  const [newArtTitle, setNewArtTitle] = useState('');
+  const [newArtCategory, setNewArtCategory] = useState('Vessel');
+  const [newArtMedium, setNewArtMedium] = useState('');
+  const [newArtDims, setNewArtDims] = useState('');
+  const [newArtPrice, setNewArtPrice] = useState('12000');
+  const [newArtEdition, setNewArtEdition] = useState('Unique Original · 1 of 1');
+  const [newArtImg, setNewArtImg] = useState('https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80');
+
+  // Lookbook PDF Export Simulator Modal
+  const [isLookbookModalOpen, setIsLookbookModalOpen] = useState(false);
+
+  // Suggestions & Roadmap Modal ("What more can we do")
+  const [isRoadmapOpen, setIsRoadmapOpen] = useState(false);
+
+  // Toast alert
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleToggle = (key: keyof FeatureToggles) => {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const isMobileViewport = viewportMode === 'mobile';
+  const isTabletViewport = viewportMode === 'tablet';
+
+  // 10 Distinct Master Templates for Indian Craft Disciplines
+  const TEN_TEMPLATES: TemplatePreset[] = [
+    {
+      id: 'kora',
+      name: '01. Kora Kagaz Minimal',
+      craftSubhead: 'Khurja Ceramics & Fine Arts',
+      categoryTag: 'Ceramics',
+      canvasColor: 'bone',
+      typography: 'cormorant',
+      archetype: 'monograph',
+      aspectRatio: '16:10',
+      borderStyle: 'hairline',
+      accentColor: '#C25E3E',
+      description: 'Crisp museum bone paper, terracotta oxide accents, and prominent unglazed ceramic monographs.',
+      swatches: ['#FFFFFF', '#C25E3E', '#141413', '#E7E4DF'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
         collectorPricing: true,
-        curatorFootnotes: true,
-        privateViewingRoom: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
         coaSeal: true,
-        microSpecs: true,
-        timelineChronology: true,
-        commissionGateway: true,
-    });
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'khadi',
+      name: '02. Khadi Raw Linen',
+      craftSubhead: 'Varanasi Pit-Loom Handloom',
+      categoryTag: 'Textiles',
+      canvasColor: 'linen',
+      typography: 'playfair',
+      archetype: 'grid',
+      aspectRatio: '4:3',
+      borderStyle: 'hairline',
+      accentColor: '#2B4C6F',
+      description: 'Warm unbleached handloom linen, wild indigo accents, and clean balanced catalog layout.',
+      swatches: ['#F6F3ED', '#2B4C6F', '#23211E', '#DDD8CE'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: false,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'geru',
+      name: '03. Geru & Clay Kiln',
+      craftSubhead: 'Earthen Red Clay Terracotta',
+      categoryTag: 'Ceramics',
+      canvasColor: 'terracotta',
+      typography: 'cormorant',
+      archetype: 'story',
+      aspectRatio: '4:3',
+      borderStyle: 'matting',
+      accentColor: '#C25E3E',
+      description: 'Warm baked earthen umber with roasted clay tones celebrating centuries of Khurja and Bastar craft.',
+      swatches: ['#221A18', '#C25E3E', '#F4EDE4', '#453531'],
+      pricingMode: 'inquire',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: false,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'kajal',
+      name: '04. Kajal & Basalt Night',
+      craftSubhead: 'Bastar Lost-Wax Bell Metal',
+      categoryTag: 'Metal',
+      canvasColor: 'basalt',
+      typography: 'syne',
+      archetype: 'monograph',
+      aspectRatio: '16:10',
+      borderStyle: 'hairline',
+      accentColor: '#C89D55',
+      description: 'Quiet darkroom luxury with antique bell-metal gold accents and high-contrast masterwork inspection.',
+      swatches: ['#141413', '#C89D55', '#F5F2EB', '#2F2E2A'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: false,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'jaipur',
+      name: '05. Jaipur Cobalt & Quartz',
+      craftSubhead: 'Jaipur Blue Pottery Tradition',
+      categoryTag: 'Ceramics',
+      canvasColor: 'bone',
+      typography: 'playfair',
+      archetype: 'grid',
+      aspectRatio: '1:1',
+      borderStyle: 'matting',
+      accentColor: '#155278',
+      description: 'Bright Persian cobalt blue, Egyptian paste quartz glaze, and crisp royal Rajasthani geometry.',
+      swatches: ['#FFFFFF', '#155278', '#E6A15C', '#1A2E3D'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'wasli',
+      name: '06. Wasli & Kishangarh Gold',
+      craftSubhead: 'Miniature Painting & Pigments',
+      categoryTag: 'Painting',
+      canvasColor: 'sandalwood',
+      typography: 'cormorant',
+      archetype: 'monograph',
+      aspectRatio: '3:4',
+      borderStyle: 'matting',
+      accentColor: '#B8860B',
+      description: 'Handmade hemp wasli paper tones, genuine 24k gold leaf foil accents, and stone mineral colors.',
+      swatches: ['#F7EFE1', '#B8860B', '#2C2723', '#D6C8B2'],
+      pricingMode: 'range',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'shekhawati',
+      name: '07. Shekhawati Teak & Brass',
+      craftSubhead: 'Haveli Woodcarving & Brass Inlay',
+      categoryTag: 'Wood',
+      canvasColor: 'teak',
+      typography: 'cinzel',
+      archetype: 'story',
+      aspectRatio: '16:10',
+      borderStyle: 'hairline',
+      accentColor: '#C89D55',
+      description: 'Aged Sheesham teakwood brown, hand-beaten brass studs, and architectural haveli craftsmanship.',
+      swatches: ['#2A1F1B', '#C89D55', '#EFE7DA', '#42332C'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'bidri',
+      name: '08. Bidri & Sterling Silver',
+      craftSubhead: 'Deccan Zinc-Alloy Damascening',
+      categoryTag: 'Metal',
+      canvasColor: 'basalt',
+      typography: 'syne',
+      archetype: 'grid',
+      aspectRatio: '1:1',
+      borderStyle: 'hairline',
+      accentColor: '#E2E8F0',
+      description: 'Jet-black oxidised zinc base adorned with pure sterling silver inlay from historic Bidar forts.',
+      swatches: ['#141413', '#E2E8F0', '#94A3B8', '#272725'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: false,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: false,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'rogan',
+      name: '09. Kutch Rogan & Mud Lippan',
+      craftSubhead: 'Castor Oil Paint & Earthen Relief',
+      categoryTag: 'Heritage Arts',
+      canvasColor: 'multani',
+      typography: 'playfair',
+      archetype: 'story',
+      aspectRatio: '4:3',
+      borderStyle: 'matting',
+      accentColor: '#D9531E',
+      description: 'Boiled wild castor oil elastic pigments, white clay lippan borders, and mirror stud reflections.',
+      swatches: ['#EDE6DA', '#D9531E', '#3D312A', '#C7B7A3'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'patachitra',
+      name: '10. Bengal Patachitra Scroll',
+      craftSubhead: 'Narrative Scroll & Vegetable Dye',
+      categoryTag: 'Painting',
+      canvasColor: 'sandstone',
+      typography: 'cormorant',
+      archetype: 'monograph',
+      aspectRatio: '3:4',
+      borderStyle: 'hairline',
+      accentColor: '#943826',
+      description: 'Traditional scroll storytelling with lampblack, conch shell white, and Indian madder root red.',
+      swatches: ['#F2E8DC', '#943826', '#1E3A2F', '#E5DCB8'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    }
+  ];
 
-    // Highlight state to show which element was toggled in preview
-    const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
+  const filteredTemplates = useMemo(() => {
+    if (templateFilter === 'All') return TEN_TEMPLATES;
+    return TEN_TEMPLATES.filter(t => t.categoryTag === templateFilter);
+  }, [templateFilter]);
 
-    // Notification toast
-    const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const applyTemplate = (preset: TemplatePreset) => {
+    setActiveTemplateId(preset.id);
+    setCanvasColor(preset.canvasColor);
+    setTypography(preset.typography);
+    setArchetype(preset.archetype);
+    setAspectRatio(preset.aspectRatio);
+    setBorderStyle(preset.borderStyle);
+    setAccentColor(preset.accentColor);
+    setPricingMode(preset.pricingMode);
+    setToggles(prev => ({ ...prev, ...preset.toggles }));
+    showToast(`Applied Master Template: ${preset.name}`);
+  };
 
-    // Ref for the internal scrollable container
-    const innerMockupRef = useRef<HTMLDivElement>(null);
-    const outerCanvasRef = useRef<HTMLDivElement>(null);
+  const handleSelectArtistPreset = (id: 'aarav' | 'ananya' | 'devendra') => {
+    setSelectedArtistId(id);
+    const p = INITIAL_INDIAN_PROFILES[id];
+    setCustomStudioName(p.studioName);
+    setCustomArtistName(p.name);
+    setCustomHandle(p.handle);
+    setCustomLocation(p.location);
+    setCustomDiscipline(p.discipline);
+    setCustomHindiTitle(p.hindiTitle);
+    setCustomHeadline(p.heroHeadline);
+    setCustomSubheadline(p.heroSubheadline);
+    setMasterworkTitle(p.masterwork.title);
+    setMasterworkHindiName(p.masterwork.hindiName);
+    setMasterworkSpecs(p.masterwork.specs);
+    setMasterworkMedium(p.masterwork.medium);
+    setMasterworkPrice(p.masterwork.price);
+    setMasterworkFiring(p.masterwork.firingOrLoom);
+    setMasterworkProvenance(p.masterwork.provenance);
+    setMasterworkDims(p.masterwork.dims);
+    setMasterworkWeight(p.masterwork.weight);
+    setMasterworkStatus(p.masterwork.status);
+    setMasterworkImgFront(p.masterwork.images.front);
+    setMasterworkImgTexture(p.masterwork.images.texture);
+    setMasterworkImgProfile(p.masterwork.images.profile);
+    setMasterworkImgSpatial(p.masterwork.images.spatial);
+    setArtworksList(p.artworks);
+    setProcessTitle(p.processLog.title);
+    setProcessSubtitle(p.processLog.subtitle);
+    setSpec1Label(p.processLog.spec1Label);
+    setSpec1Val(p.processLog.spec1Val);
+    setSpec2Label(p.processLog.spec2Label);
+    setSpec2Val(p.processLog.spec2Val);
+    setSpec3Label(p.processLog.spec3Label);
+    setSpec3Val(p.processLog.spec3Val);
+    setSpec4Label(p.processLog.spec4Label);
+    setSpec4Val(p.processLog.spec4Val);
+    setProcessSummary(p.processLog.summary);
+    setCraftHeritageNote(p.craftHeritageNote);
+    setBespokeTitle(p.bespoke.title);
+    setBespokeLeadTime(p.bespoke.leadTime);
+    setBespokeMinBudget(p.bespoke.minBudget);
+    setBespokeTerms(p.bespoke.terms);
+    setBespokeCtaLabel(p.bespoke.ctaLabel);
+    setBespokeAccepting(p.bespoke.accepting);
+    showToast(`Loaded discipline preset: ${p.name}`);
+  };
 
-    const showToast = (msg: string) => {
-        setToastMessage(msg);
-        setTimeout(() => setToastMessage(null), 3500);
+  // Color theme classes
+  const getThemeClasses = () => {
+    switch (canvasColor) {
+      case 'basalt':
+        return {
+          bg: 'bg-[#141413]',
+          text: 'text-[#F5F2EB]',
+          border: 'border-[#2F2E2A]',
+          subtleBg: 'bg-[#1E1E1B]',
+          cardBg: 'bg-[#1A1A17]',
+          cardBorder: 'border-[#33322E]',
+          mutedText: 'text-[#A09D95]',
+        };
+      case 'teak':
+        return {
+          bg: 'bg-[#2A1F1B]',
+          text: 'text-[#EFE7DA]',
+          border: 'border-[#4A3730]',
+          subtleBg: 'bg-[#352722]',
+          cardBg: 'bg-[#2F231F]',
+          cardBorder: 'border-[#533E37]',
+          mutedText: 'text-[#B8A79E]',
+        };
+      case 'forest':
+        return {
+          bg: 'bg-[#16241B]',
+          text: 'text-[#EDEFE9]',
+          border: 'border-[#2C3F32]',
+          subtleBg: 'bg-[#1E3024]',
+          cardBg: 'bg-[#1A2A20]',
+          cardBorder: 'border-[#344C3D]',
+          mutedText: 'text-[#9CAD9E]',
+        };
+      case 'indigo':
+        return {
+          bg: 'bg-[#121A24]',
+          text: 'text-[#F4F6F8]',
+          border: 'border-[#263548]',
+          subtleBg: 'bg-[#1A2533]',
+          cardBg: 'bg-[#16202C]',
+          cardBorder: 'border-[#2D3E54]',
+          mutedText: 'text-[#A5B4C7]',
+        };
+      case 'terracotta':
+        return {
+          bg: 'bg-[#221A18]',
+          text: 'text-[#F4EDE4]',
+          border: 'border-[#433430]',
+          subtleBg: 'bg-[#2C211E]',
+          cardBg: 'bg-[#281E1B]',
+          cardBorder: 'border-[#4B3B36]',
+          mutedText: 'text-[#C7B5AF]',
+        };
+      case 'sandstone':
+        return {
+          bg: 'bg-[#F2E8DC]',
+          text: 'text-[#26201B]',
+          border: 'border-[#DFD1BF]',
+          subtleBg: 'bg-[#E8DCCF]',
+          cardBg: 'bg-[#F8F1E7]',
+          cardBorder: 'border-[#DBD0BF]',
+          mutedText: 'text-[#7A6C5F]',
+        };
+      case 'sandalwood':
+        return {
+          bg: 'bg-[#F7EFE1]',
+          text: 'text-[#2C2723]',
+          border: 'border-[#DFD3BF]',
+          subtleBg: 'bg-[#EDE4D2]',
+          cardBg: 'bg-[#FAF4E8]',
+          cardBorder: 'border-[#DDD0BB]',
+          mutedText: 'text-[#7D7368]',
+        };
+      case 'multani':
+        return {
+          bg: 'bg-[#EDE6DA]',
+          text: 'text-[#25221E]',
+          border: 'border-[#D6CCC0]',
+          subtleBg: 'bg-[#E3D9CB]',
+          cardBg: 'bg-[#F3ECE0]',
+          cardBorder: 'border-[#D4C9BC]',
+          mutedText: 'text-[#736B62]',
+        };
+      case 'linen':
+        return {
+          bg: 'bg-[#F6F3ED]',
+          text: 'text-[#23211E]',
+          border: 'border-[#DDD8CE]',
+          subtleBg: 'bg-[#EFECE4]',
+          cardBg: 'bg-[#FAF8F5]',
+          cardBorder: 'border-[#DFDACF]',
+          mutedText: 'text-[#6F6B64]',
+        };
+      case 'bone':
+      default:
+        return {
+          bg: 'bg-[#FFFFFF]',
+          text: 'text-[#141413]',
+          border: 'border-[#E7E4DF]',
+          subtleBg: 'bg-[#FAF8F5]',
+          cardBg: 'bg-[#FFFFFF]',
+          cardBorder: 'border-[#E7E4DF]',
+          mutedText: 'text-[#716E68]',
+        };
+    }
+  };
+
+  const theme = getThemeClasses();
+
+  const getHeaderFontClass = () => {
+    if (typography === 'cormorant') return 'font-serif italic';
+    if (typography === 'playfair') return 'font-serif';
+    if (typography === 'cinzel') return 'font-serif uppercase tracking-widest font-semibold';
+    if (typography === 'syne') return 'font-sans uppercase font-extrabold tracking-tight';
+    if (typography === 'space') return 'font-mono uppercase font-bold tracking-tight';
+    if (typography === 'baskerville') return 'font-serif font-medium';
+    if (typography === 'bodoni') return 'font-serif font-black tracking-normal';
+    return 'font-serif';
+  };
+
+  const getAspectClass = () => {
+    if (aspectRatio === '1:1') return 'aspect-square';
+    if (aspectRatio === '16:10') return 'aspect-[16/10]';
+    if (aspectRatio === '3:4') return 'aspect-[3/4]';
+    if (aspectRatio === '2:3') return 'aspect-[2/3]';
+    if (aspectRatio === '5:4') return 'aspect-[5/4]';
+    return 'aspect-[4/3]';
+  };
+
+  const getCardElevationClass = () => {
+    if (borderStyle === 'matting') return 'border-2 p-3 sm:p-4 ring-1 ring-black/10';
+    if (borderStyle === 'flush') return 'border-none p-0 shadow-none';
+    if (borderStyle === 'float') return 'border shadow-md hover:shadow-lg transition-shadow p-3';
+    if (borderStyle === 'rivets') return 'border border-dashed p-3 relative';
+    return 'border p-3 sm:p-4';
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard?.writeText(`https://atelier.art/@${customHandle}`);
+    showToast(`Copied portfolio link: https://atelier.art/@${customHandle}`);
+  };
+
+  const handleSendInquiry = (e: React.FormEvent) => {
+    e.preventDefault();
+    setInquirySent(true);
+    setTimeout(() => {
+      setInquirySent(false);
+      setActiveInquiryArtwork(null);
+      setInquiryName('');
+      setInquiryCity('');
+      setInquiryMessage('');
+      showToast('Inquiry relayed to studio! Mobile numbers protected.');
+    }, 1200);
+  };
+
+  const handleSendBespokeInquiry = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBespokeSent(true);
+    setTimeout(() => {
+      setBespokeSent(false);
+      setIsBespokeModalOpen(false);
+      setBespokeClientName('');
+      setBespokeClientCity('');
+      setBespokeScope('');
+      showToast('Bespoke project brief submitted with 50% milestone escrow protection!');
+    }, 1200);
+  };
+
+  const handleAddArtwork = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newArtTitle) return;
+    const newItem: CatalogItem = {
+      id: `CUSTOM-${Date.now()}`,
+      title: newArtTitle,
+      category: newArtCategory,
+      medium: newArtMedium || 'Handcrafted Mixed Material',
+      dims: newArtDims || 'Custom Scale',
+      year: '2026',
+      price: parseInt(newArtPrice) || 10000,
+      status: 'Available',
+      editionInfo: newArtEdition,
+      img: newArtImg
     };
+    setArtworksList(prev => [newItem, ...prev]);
+    setIsAddArtworkOpen(false);
+    setNewArtTitle('');
+    setNewArtMedium('');
+    setNewArtDims('');
+    showToast(`Added "${newItem.title}" to Studio Catalog!`);
+  };
 
-    const handleToggle = (key: keyof FeatureToggles) => {
-        setToggles(prev => {
-            const next = { ...prev, [key]: !prev[key] };
-            setHighlightedKey(key);
-            setTimeout(() => setHighlightedKey(null), 1500);
-            return next;
-        });
-    };
+  const handleRemoveArtwork = (id: string) => {
+    setArtworksList(prev => prev.filter(item => item.id !== id));
+    showToast('Artwork removed from catalog.');
+  };
 
-    // Viewport mode booleans for internal content responsiveness
-    const isMobileViewport = viewportMode === 'mobile';
-    const isTabletViewport = viewportMode === 'tablet';
-    const isDesktopWidth = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+  const currentMasterworkImg = () => {
+    if (masterworkAngle === 'texture') return masterworkImgTexture;
+    if (masterworkAngle === 'profile') return masterworkImgProfile;
+    if (masterworkAngle === 'spatial') return masterworkImgSpatial;
+    return masterworkImgFront;
+  };
 
-    // Curated Master Templates
-    const templates: TemplatePreset[] = [
-        {
-            id: 'venice',
-            name: "Venice Biennale Pavilion",
-            subtitle: 'Brutalist Monograph',
-            canvasColor: 'basalt',
-            typography: 'cormorant',
-            archetype: 'editorial',
-            accentColor: '#C25E3E',
-            description: 'Volcanic charcoal base with terracotta accents and bilingual text.',
-            swatches: ['#161514', '#C45834', '#EFE8DC', '#6E6157'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: true,
-                collectorPricing: false,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'kyoto',
-            name: "Kyoto Tea-Master Archive",
-            subtitle: 'Quiet Wabi Curation',
-            canvasColor: 'bone',
-            typography: 'playfair',
-            archetype: 'masonry',
-            accentColor: '#3A5A40',
-            description: 'Pure white canvas with deep forest sage and serene wabi minimalism.',
-            swatches: ['#FFFFFF', '#3A5A40', '#7A9E80', '#C8D8C4'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: true,
-                collectorPricing: false,
-                curatorFootnotes: false,
-                privateViewingRoom: false,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'basel',
-            name: "Art Basel Cantonal Ledger",
-            subtitle: 'Primary Market Commercial',
-            canvasColor: 'bone',
-            typography: 'syne',
-            archetype: 'gallery',
-            accentColor: '#1B4965',
-            description: 'Clean white canvas with cobalt accents and structured grid.',
-            swatches: ['#FFFFFF', '#1B4965', '#111827', '#94A3B8'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: false,
-                kilnProcessLog: false,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'sothebys',
-            name: "Sotheby's Archival Provenance",
-            subtitle: 'Gilded Antiquarian',
-            canvasColor: 'basalt',
-            typography: 'cormorant',
-            archetype: 'editorial',
-            accentColor: '#D4AF37',
-            description: 'Charcoal void with champagne gold seals and private collector lounge.',
-            swatches: ['#181816', '#D4AF37', '#2A2820', '#E8D490'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: true,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'frieze',
-            name: "Frieze Collector Ledger",
-            subtitle: 'Contemporary Blue-Chip',
-            canvasColor: 'ivory',
-            typography: 'inter',
-            archetype: 'gallery',
-            accentColor: '#A23B3B',
-            description: 'Editorial layout with crimson accents and wide whitespace.',
-            swatches: ['#FAF8F5', '#8E1B2D', '#1C1917', '#E7E2DA'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: false,
-                kilnProcessLog: false,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: false,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'sothebys-registry',
-            name: "Sotheby's Auction Registry",
-            subtitle: 'Secondary Market Prestige',
-            canvasColor: 'pearl',
-            typography: 'playfair',
-            archetype: 'auction',
-            accentColor: '#002147',
-            description: 'Deep navy palette with lot history and auction records.',
-            swatches: ['#FFFFFF', '#0A2540', '#C5A059', '#E2E8F0'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: false,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: false,
-            }
-        },
-        {
-            id: 'kinfolk',
-            name: "Kinfolk Artisan Catalogue",
-            subtitle: 'Minimal Craft Commerce',
-            canvasColor: 'cream',
-            typography: 'manrope',
-            archetype: 'artisan',
-            accentColor: '#5B7B6F',
-            description: 'Soft cream canvas with sage-teal accents and artisan editorial warmth.',
-            swatches: ['#FFFDF8', '#5B7B6F', '#3D5C54', '#B8CECA'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: false,
-                kilnProcessLog: true,
-                collectorPricing: false,
-                curatorFootnotes: true,
-                privateViewingRoom: false,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'muji',
-            name: "MUJI Design Ledger",
-            subtitle: 'Functional Minimalism',
-            canvasColor: 'bone',
-            typography: 'ibm-plex-sans',
-            archetype: 'design',
-            accentColor: '#111111',
-            description: 'Pure white with jet black grid — ultra-minimal Japanese utility design.',
-            swatches: ['#FFFFFF', '#111111', '#6E6E6E', '#D4D4D4'],
-            toggles: {
-                provenanceBadge: false,
-                dualLanguage: true,
-                kilnProcessLog: true,
-                collectorPricing: false,
-                curatorFootnotes: false,
-                privateViewingRoom: false,
-                coaSeal: false,
-                microSpecs: true,
-                timelineChronology: false,
-                commissionGateway: false,
-            }
-        },
-        {
-            id: 'atelier',
-            name: "Atelier Portfolio Dossier",
-            subtitle: 'Studio Commission Showcase',
-            canvasColor: 'cream',
-            typography: 'cormorant',
-            archetype: 'studio',
-            accentColor: '#8C6239',
-            description: 'Editorial spreads with studio notes and commission details.',
-            swatches: ['#FFFDF7', '#946337', '#2A2219', '#EAE0D2'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: false,
-                kilnProcessLog: true,
-                collectorPricing: false,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: false,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'obsidian',
-            name: "Obsidian Monolith Vault",
-            subtitle: 'Ultra-Dark Brutalist',
-            canvasColor: 'obsidian',
-            typography: 'syne',
-            archetype: 'gallery',
-            accentColor: '#10B981',
-            description: 'Pure black dark mode with vibrant emerald telemetry accents.',
-            swatches: ['#0D0D0C', '#10B981', '#1F2937', '#9CA3AF'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: true,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        },
-        {
-            id: 'nocturne',
-            name: "Nocturne Gilded Salon",
-            subtitle: 'Midnight Private Gallery',
-            canvasColor: 'midnight',
-            typography: 'playfair',
-            archetype: 'editorial',
-            accentColor: '#D4AF37',
-            description: 'Midnight navy ground with refined gold seals and private view.',
-            swatches: ['#0B111E', '#D4AF37', '#1E293B', '#E2E8F0'],
-            toggles: {
-                provenanceBadge: true,
-                dualLanguage: true,
-                kilnProcessLog: false,
-                collectorPricing: true,
-                curatorFootnotes: true,
-                privateViewingRoom: true,
-                coaSeal: true,
-                microSpecs: true,
-                timelineChronology: true,
-                commissionGateway: true,
-            }
-        }
-    ];
+  return (
+    <div className="min-h-screen bg-[#F4F1EA] flex flex-col overflow-hidden text-[#141413]">
+      
+      {/* TOP STUDIO TOOLBAR & PREVIEW CONTROLLER */}
+      <div className="h-14 bg-white border-b border-[#E7E4DF] px-4 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+        
+        {/* Brand & Breadcrumbs */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNavigate('studio-overview')}
+            className="flex items-center gap-1.5 text-xs font-mono text-[#716E68] hover:text-[#141413] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span className="hidden sm:inline">Studio Hub</span>
+          </button>
+          <span className="text-[#D0C8B8]">/</span>
+          <div className="flex items-center gap-2">
+            <span className="font-serif text-sm font-bold text-[#141413]">Portfolio Customiser</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-mono border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Sync Active
+            </span>
+          </div>
+        </div>
 
-    const applyTemplate = (preset: TemplatePreset) => {
-        setActiveTemplate(preset.id);
-        setCanvasColor(preset.canvasColor);
-        setTypography(preset.typography);
-        setArchetype(preset.archetype);
-        setAccentColor(preset.accentColor);
-        setToggles({ ...preset.toggles });
-        try {
-            localStorage.setItem('workfolio:customizer_state', JSON.stringify({
-                template: preset.id,
-                canvasColor: preset.canvasColor,
-                typography: preset.typography,
-                archetype: preset.archetype,
-                accentColor: preset.accentColor,
-                toggles: preset.toggles,
-                artistId: activeArtistId,
-            }));
-        } catch {
-            // ignore
-        }
-        showToast(`Template applied: ${preset.name}`);
-    };
+        {/* Viewport Screen Switcher (Mobile, Tablet, Desktop) */}
+        <div className="hidden md:flex items-center bg-[#FAF8F5] border border-[#E7E4DF] p-0.5 rounded-sm">
+          <button
+            onClick={() => setViewportMode('desktop')}
+            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
+              viewportMode === 'desktop' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            }`}
+            title="Desktop 1440px"
+          >
+            <span className="material-symbols-outlined text-[15px]">desktop_windows</span>
+            <span>Desktop</span>
+          </button>
 
-    // Scroll jump helper
-    const scrollToPreviewSection = (sectionId: string) => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    };
+          <button
+            onClick={() => setViewportMode('tablet')}
+            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
+              viewportMode === 'tablet' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            }`}
+            title="Tablet 768px"
+          >
+            <span className="material-symbols-outlined text-[15px]">tablet_mac</span>
+            <span>Tablet</span>
+          </button>
 
-    // Nudge scroll helper
-    const nudgeScroll = (direction: 'up' | 'down' | 'left' | 'right') => {
-        const target = scrollMode === 'frame' ? innerMockupRef.current : outerCanvasRef.current;
-        if (!target) return;
-        const delta = 300;
-        if (direction === 'up') target.scrollBy({ top: -delta, behavior: 'smooth' });
-        if (direction === 'down') target.scrollBy({ top: delta, behavior: 'smooth' });
-        if (direction === 'left') target.scrollBy({ left: -delta, behavior: 'smooth' });
-        if (direction === 'right') target.scrollBy({ left: delta, behavior: 'smooth' });
-    };
+          <button
+            onClick={() => setViewportMode('mobile')}
+            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
+              viewportMode === 'mobile' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            }`}
+            title="Mobile 390px"
+          >
+            <span className="material-symbols-outlined text-[15px]">stay_current_portrait</span>
+            <span>Mobile</span>
+          </button>
+        </div>
 
-    // Color theme mapper
-    const getThemeClasses = () => {
-        switch (canvasColor) {
-            case 'basalt':
-                return {
-                    bg: 'bg-[#181816]',
-                    text: 'text-[#F3F0EA]',
-                    border: 'border-[#2F2E2A]',
-                    subtleBg: 'bg-[#21211E]',
-                    cardBg: 'bg-[#1D1D1A]',
-                    cardBorder: 'border-[#353430]',
-                };
-            case 'bone':
-                return {
-                    bg: 'bg-[#FFFFFF]',
-                    text: 'text-[#141413]',
-                    border: 'border-[#E7E4DF]',
-                    subtleBg: 'bg-[#F9F8F6]',
-                    cardBg: 'bg-[#FFFFFF]',
-                    cardBorder: 'border-[#E7E4DF]',
-                };
-            case 'linen':
-                return {
-                    bg: 'bg-[#C8B89A]',
-                    text: 'text-[#2A221A]',
-                    border: 'border-[#B0A082]',
-                    subtleBg: 'bg-[#BBA98B]',
-                    cardBg: 'bg-[#D8C8AC]',
-                    cardBorder: 'border-[#A89272]',
-                };
-            case 'ivory':
-                return {
-                    bg: 'bg-[#F2E8D0]',
-                    text: 'text-[#2A2218]',
-                    border: 'border-[#DACCB0]',
-                    subtleBg: 'bg-[#E8DEC4]',
-                    cardBg: 'bg-[#FAF4E4]',
-                    cardBorder: 'border-[#D0C0A0]',
-                };
-            case 'pearl':
-                return {
-                    bg: 'bg-[#D4C5BF]',
-                    text: 'text-[#251E1C]',
-                    border: 'border-[#B8A8A2]',
-                    subtleBg: 'bg-[#C6B5AF]',
-                    cardBg: 'bg-[#E0D4CE]',
-                    cardBorder: 'border-[#AE9C96]',
-                };
-            case 'sand':
-                return {
-                    bg: 'bg-[#C4A06A]',
-                    text: 'text-[#221608]',
-                    border: 'border-[#A07E4A]',
-                    subtleBg: 'bg-[#B6925C]',
-                    cardBg: 'bg-[#D4B07C]',
-                    cardBorder: 'border-[#9A7640]',
-                };
-            case 'cream':
-                return {
-                    bg: 'bg-[#FFFDF8]',
-                    text: 'text-[#2D2A26]',
-                    border: 'border-[#E7DED2]',
-                    subtleBg: 'bg-[#F6EFE3]',
-                    cardBg: 'bg-[#FFFFFF]',
-                    cardBorder: 'border-[#E0D5C7]',
-                };
-            case 'obsidian':
-                return {
-                    bg: 'bg-[#0D0D0C]',
-                    text: 'text-[#F3F0EA]',
-                    border: 'border-[#262624]',
-                    subtleBg: 'bg-[#171715]',
-                    cardBg: 'bg-[#131312]',
-                    cardBorder: 'border-[#2C2C28]',
-                };
-            case 'midnight':
-                return {
-                    bg: 'bg-[#0B111E]',
-                    text: 'text-[#E8EDF5]',
-                    border: 'border-[#1E293B]',
-                    subtleBg: 'bg-[#11192C]',
-                    cardBg: 'bg-[#0F172A]',
-                    cardBorder: 'border-[#28354D]',
-                };
-            case 'parchment':
-            default:
-                return {
-                    bg: 'bg-[#C9A96B]',
-                    text: 'text-[#2E2010]',
-                    border: 'border-[#A8884A]',
-                    subtleBg: 'bg-[#BA9C5E]',
-                    cardBg: 'bg-[#D8BA7E]',
-                    cardBorder: 'border-[#9E8040]',
-                };
-        }
-    };
+        {/* Small Screen Tab Switcher (Preview on Left, Controls on Right) */}
+        <div className="flex lg:hidden items-center bg-[#FAF8F5] border border-[#E7E4DF] p-0.5">
+          <button
+            onClick={() => setHostSmallScreenTab('preview')}
+            className={`px-2.5 py-1 text-xs font-mono cursor-pointer ${
+              hostSmallScreenTab === 'preview' ? 'bg-white text-[#141413] font-semibold shadow-xs' : 'text-[#716E68]'
+            }`}
+          >
+            Live Canvas
+          </button>
+          <button
+            onClick={() => setHostSmallScreenTab('controls')}
+            className={`px-2.5 py-1 text-xs font-mono cursor-pointer ${
+              hostSmallScreenTab === 'controls' ? 'bg-white text-[#141413] font-semibold shadow-xs' : 'text-[#716E68]'
+            }`}
+          >
+            Customiser
+          </button>
+        </div>
 
-    const theme = getThemeClasses();
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-2">
+          {/* Innovations Roadmap & Ideas Button */}
+          <button
+            onClick={() => setIsRoadmapOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF8F5] hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-mono transition-colors cursor-pointer"
+            title="Future Roadmap & Suggestions"
+          >
+            <span className="material-symbols-outlined text-[15px] text-amber-700">lightbulb</span>
+            <span className="hidden sm:inline font-semibold">10 What's Next Ideas</span>
+          </button>
 
-    // Typography font class mapper
-    const getHeaderFontClass = () => {
-        if (typography === 'cormorant') return 'font-serif italic';
-        if (typography === 'playfair') return 'font-serif';
-        if (typography === 'syne') return 'font-sans font-bold tracking-tight';
-        if (typography === 'inter') return 'font-sans font-medium tracking-tight';
-        if (typography === 'manrope') return 'font-sans font-semibold tracking-tight';
-        if (typography === 'ibm-plex-sans') return 'font-mono font-medium tracking-tight';
-        return 'font-sans font-bold tracking-tight';
-    };
+          {/* Lookbook PDF Generator */}
+          <button
+            onClick={() => setIsLookbookModalOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-xs font-mono text-[#141413] transition-colors cursor-pointer"
+            title="Export Lookbook / Spec Sheet"
+          >
+            <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+            <span>Lookbook</span>
+          </button>
 
-    // Filter artworks for preview
-    const filteredArtworks = currentArtist.artworks.filter(item => {
-        if (previewWorkFilter === 'vessels') return item.series.toLowerCase().includes('vessel');
-        if (previewWorkFilter === 'monoliths') return item.series.toLowerCase().includes('monolith');
-        if (previewWorkFilter === 'available') return item.status === 'Available';
-        return true;
-    });
+          {/* Copy Public Link */}
+          <button
+            onClick={handleCopyLink}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-xs font-mono text-[#141413] transition-colors cursor-pointer"
+            title="Copy Public Link"
+          >
+            <span className="material-symbols-outlined text-[15px]">link</span>
+            <span>Copy Link</span>
+          </button>
 
-    return (
-        <div className="flex flex-col w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-[#FAF8F5]">
+          {/* Expand Full Preview */}
+          <button
+            onClick={() => {
+              setIsPreviewExpanded(!isPreviewExpanded);
+              showToast(isPreviewExpanded ? 'Split Studio view' : 'Expanded Full Preview');
+            }}
+            className="p-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-[#141413] transition-colors cursor-pointer"
+            title={isPreviewExpanded ? 'Split Controls' : 'Expand Preview'}
+          >
+            <span className="material-symbols-outlined text-[16px] block">
+              {isPreviewExpanded ? 'splitscreen' : 'fullscreen'}
+            </span>
+          </button>
 
-            {/* Top Action & Viewport Context Bar (Ultra Compact & Uncluttered) */}
-            <div className="w-full bg-white border-b border-[#E7E4DF] px-3 sm:px-6 py-2 flex items-center justify-between gap-3 shadow-2xs shrink-0 z-30">
+          {/* Publish Site Button */}
+          <button 
+            onClick={() => showToast('Portfolio Published! Changes live on your public handle.')} 
+            style={{ backgroundColor: accentColor }}
+            className="px-3.5 py-1.5 text-white hover:opacity-90 transition-all flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider shadow-xs cursor-pointer font-semibold"
+          >
+            <span>Publish Site</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+          </button>
+        </div>
+      </div>
 
-                {/* Left: Minimal Brand & Status */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-serif text-sm sm:text-base font-bold text-[#141413] tracking-tight truncate">
-                        {currentArtist.name}
-                    </span>
-                    <span className="text-[#D5D0C7] hidden sm:inline">/</span>
-                    <span className="font-mono text-[11px] text-[#716E68] uppercase tracking-wider hidden sm:inline truncate">
-                        Portfolio Customizer
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Live Preview Synchronized"></span>
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-16 right-4 sm:right-6 z-50 bg-[#141413] text-white px-4 py-2.5 shadow-xl font-mono text-xs flex items-center gap-2.5 border border-white/20 animate-fade-in max-w-sm">
+          <span className="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* MAIN STUDIO WORKSPACE */}
+      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-0 relative flex-1 min-h-0 min-w-0 overflow-hidden">
+        
+        {/* LEFT PANEL: LIVE RESPONSIVE PREVIEW CANVAS */}
+        <div className={`col-span-1 ${isPreviewExpanded ? 'lg:col-span-12' : 'lg:col-span-7 xl:col-span-8 border-r border-[#E7E4DF]'} bg-[#EBE8E2] overflow-y-auto flex flex-col items-center justify-start p-3 sm:p-6 lg:p-8 transition-all ${hostSmallScreenTab !== 'preview' && !isPreviewExpanded ? 'hidden lg:flex' : 'flex'}`}>
+          
+          {/* Responsive Device Mockup Container */}
+          <div
+            id="portfolio-mockup-frame"
+            className={`transition-all duration-300 shadow-2xl bg-white flex flex-col shrink-0 relative overflow-hidden ${
+              isMobileViewport
+                ? 'w-[390px] max-w-full rounded-[40px] border-[10px] border-[#181715]'
+                : isTabletViewport
+                ? 'w-[768px] max-w-full rounded-[24px] border-[8px] border-[#22211F]'
+                : 'w-[1240px] max-w-full rounded-md border border-[#D5D0C7]'
+            }`}
+          >
+            
+            {/* Top Device Chrome */}
+            {isMobileViewport && (
+              <div className="bg-[#181715] text-white px-6 pt-3 pb-2 flex flex-col items-center select-none shrink-0 z-30">
+                <div className="w-full flex items-center justify-between text-[11px] font-mono opacity-80 px-1">
+                  <span>9:41</span>
+                  {/* Dynamic Island */}
+                  <div className="w-20 h-4 bg-black rounded-full flex items-center justify-center gap-1.5 shadow-inner">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="w-2 h-2 rounded-full bg-white/20"></span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">wifi</span>
+                    <span className="material-symbols-outlined text-[13px]">battery_full</span>
+                  </div>
                 </div>
-
-                {/* Right: Consolidated Controls (Dropdowns + Icon Actions) */}
-                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end">
-
-                    {/* Host Small-Screen Switcher (< lg screens) */}
-                    <div className="flex lg:hidden items-center bg-[#141413] p-0.5 rounded-sm">
-                        <button
-                            onClick={() => setHostSmallScreenTab('controls')}
-                            className={`px-2 py-0.5 text-[11px] font-mono cursor-pointer rounded-xs ${hostSmallScreenTab === 'controls' ? 'bg-white text-black font-semibold' : 'text-white/70 hover:text-white'
-                                }`}
-                        >
-                            Controls
-                        </button>
-                        <button
-                            onClick={() => setHostSmallScreenTab('preview')}
-                            className={`px-2 py-0.5 text-[11px] font-mono cursor-pointer rounded-xs ${hostSmallScreenTab === 'preview' ? 'bg-white text-black font-semibold' : 'text-white/70 hover:text-white'
-                                }`}
-                        >
-                            Preview
-                        </button>
-                    </div>
-
-                    {/* 1. Content Discipline Dropdown (Replaces Ceramics / Optics / Bronze button group) */}
-                    <div className="relative flex items-center">
-                        <span className="material-symbols-outlined text-[14px] text-[#716E68] absolute left-2 pointer-events-none">
-                            palette
-                        </span>
-                        <select
-                            value={activeArtistId}
-                            onChange={(e) => {
-                                const val = e.target.value as 'elena' | 'kaito' | 'aurelia';
-                                setActiveArtistId(val);
-                                showToast(`Switched content to ${ARTIST_PROFILES[val].name}`);
-                            }}
-                            className="bg-[#FAF8F5] border border-[#E7E4DF] hover:border-[#141413] text-[#141413] text-xs font-mono pl-7 pr-6 py-1 rounded-xs outline-none cursor-pointer transition-colors appearance-none"
-                            title="Select Artist & Discipline Content Preset"
-                        >
-                            <option value="elena">Ceramics · Elena Vance</option>
-                            <option value="kaito">Optics · Kaito Tanaka</option>
-                            <option value="aurelia">Bronze · Aurelia Vane</option>
-                        </select>
-                        <span className="material-symbols-outlined text-[13px] text-[#716E68] absolute right-1.5 pointer-events-none">
-                            expand_more
-                        </span>
-                    </div>
-
-                    {/* 2. Display & Scroll Mode Dropdown (Replaces Window / Canvas & Fit / 100% buttons) */}
-                    <div className="hidden sm:relative sm:flex items-center">
-                        <span className="material-symbols-outlined text-[14px] text-[#716E68] absolute left-2 pointer-events-none">
-                            tune
-                        </span>
-                        <select
-                            value={`${scrollMode}-${previewScaleMode}`}
-                            onChange={(e) => {
-                                const [sMode, scMode] = e.target.value.split('-') as ['frame' | 'canvas', 'fit' | 'actual'];
-                                setScrollMode(sMode);
-                                setPreviewScaleMode(scMode);
-                                showToast(`Display: ${sMode === 'frame' ? 'Window Scroll' : 'Canvas Artboard'} (${scMode === 'fit' ? 'Fit Screen' : '100% Actual'})`);
-                            }}
-                            className="bg-[#FAF8F5] border border-[#E7E4DF] hover:border-[#141413] text-[#141413] text-xs font-mono pl-7 pr-6 py-1 rounded-xs outline-none cursor-pointer transition-colors appearance-none"
-                            title="Select Preview Display & Scroll Behavior"
-                        >
-                            <option value="frame-fit">Window Scroll · Fit Screen</option>
-                            <option value="frame-actual">Window Scroll · 100% Actual</option>
-                            <option value="canvas-fit">Canvas Artboard · Fit Screen</option>
-                            <option value="canvas-actual">Canvas Artboard · 100% Actual</option>
-                        </select>
-                        <span className="material-symbols-outlined text-[13px] text-[#716E68] absolute right-1.5 pointer-events-none">
-                            expand_more
-                        </span>
-                    </div>
-
-                    {/* 3. Device Viewport Icons (Compact 3-icon group, no labels) */}
-                    <div className="flex items-center bg-[#FAF8F5] p-0.5 border border-[#E7E4DF] rounded-xs">
-                        <button
-                            onClick={() => {
-                                setViewportMode('desktop');
-                                showToast('Desktop Viewport (1240px)');
-                            }}
-                            className={`p-1 sm:p-1.5 rounded-xs transition-colors cursor-pointer ${viewportMode === 'desktop' ? 'bg-[#141413] text-white shadow-2xs' : 'text-[#716E68] hover:text-black'
-                                }`}
-                            title="Desktop Viewport"
-                        >
-                            <span className="material-symbols-outlined text-[16px] block">desktop_windows</span>
-                        </button>
-                        <button
-                            onClick={() => {
-                                setViewportMode('tablet');
-                                showToast('Tablet Viewport (768px)');
-                            }}
-                            className={`p-1 sm:p-1.5 rounded-xs transition-colors cursor-pointer ${viewportMode === 'tablet' ? 'bg-[#141413] text-white shadow-2xs' : 'text-[#716E68] hover:text-black'
-                                }`}
-                            title="Tablet Viewport (768px)"
-                        >
-                            <span className="material-symbols-outlined text-[16px] block">tablet_mac</span>
-                        </button>
-                        <button
-                            onClick={() => {
-                                setViewportMode('mobile');
-                                showToast('Mobile Viewport (390px iPhone)');
-                            }}
-                            className={`p-1 sm:p-1.5 rounded-xs transition-colors cursor-pointer ${viewportMode === 'mobile' ? 'bg-[#141413] text-white shadow-2xs' : 'text-[#716E68] hover:text-black'
-                                }`}
-                            title="Mobile Viewport (390px)"
-                        >
-                            <span className="material-symbols-outlined text-[16px] block">smartphone</span>
-                        </button>
-                    </div>
-
-                    {/* 4. Full Preview Toggle (ICON ONLY - as requested) */}
-                    <button
-                        onClick={() => {
-                            setIsPreviewExpanded(!isPreviewExpanded);
-                            showToast(isPreviewExpanded ? 'Returned to Split Studio view' : 'Expanded to Full-Screen Preview');
-                        }}
-                        className={`p-1.5 border transition-all flex items-center justify-center cursor-pointer rounded-xs ${isPreviewExpanded
-                            ? 'bg-[#141413] text-white border-black shadow-xs'
-                            : 'bg-white text-[#141413] border-[#E7E4DF] hover:border-black hover:bg-[#FAF8F5]'
-                            }`}
-                        title={isPreviewExpanded ? 'Exit Full Preview (Split View)' : 'Expand to Full Preview'}
-                        aria-label={isPreviewExpanded ? 'Exit Full Preview' : 'Expand to Full Preview'}
-                    >
-                        <span className="material-symbols-outlined text-[17px] block">
-                            {isPreviewExpanded ? 'splitscreen' : 'fullscreen'}
-                        </span>
-                    </button>
-
-                    {/* 5. Publish Action Button */}
-                    <button
-                        onClick={() => {
-                            try {
-                                localStorage.setItem('workfolio:customizer_state', JSON.stringify({
-                                    template: activeTemplate,
-                                    canvasColor,
-                                    typography,
-                                    archetype,
-                                    accentColor,
-                                    toggles,
-                                    artistId: activeArtistId,
-                                }));
-                            } catch {
-                                // ignore
-                            }
-                            showToast('Portfolio Published! Sovereign Atelier Domain Signed.');
-                        }}
-                        style={{ backgroundColor: accentColor }}
-                        className="px-3 py-1 text-white hover:opacity-90 transition-all flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider shadow-sm cursor-pointer font-semibold rounded-xs"
-                    >
-                        <span>Publish</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                    </button>
+                {/* Mobile URL Bar */}
+                <div className="w-full mt-2 bg-white/10 rounded-full px-3 py-1 flex items-center justify-between text-[10px] font-mono">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="material-symbols-outlined text-[11px] text-emerald-400">lock</span>
+                    <span className="truncate">atelier.art/@{customHandle}</span>
+                  </div>
+                  <span className="text-[9px] uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-1.5 rounded-full">
+                    Protected
+                  </span>
                 </div>
-            </div>
-
-            {/* Toast Alert */}
-            {toastMessage && (
-                <div className="fixed top-20 right-4 sm:right-6 z-50 bg-[#141413] text-white px-4 sm:px-5 py-2.5 shadow-2xl font-mono text-xs flex items-center gap-2.5 border border-white/20 animate-fade-in max-w-sm">
-                    <span className="material-symbols-outlined text-emerald-400 text-sm">verified</span>
-                    <span>{toastMessage}</span>
-                </div>
+              </div>
             )}
 
-            {/* Main Dual-Column / Full-Width Canvas */}
-            <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-0 relative flex-1 min-h-0 min-w-0 overflow-hidden">
-
-                {/* LEFT COLUMN: Controls (Visible on lg, or on small screen when hostSmallScreenTab === 'controls') */}
-                {(!isPreviewExpanded && (hostSmallScreenTab === 'controls' || isDesktopWidth)) && (
-                    <div className="lg:col-span-5 xl:col-span-4 bg-white border-r border-[#E7E4DF] flex flex-col h-full min-h-0 min-w-0 overflow-hidden transition-all duration-300">
-
-                        {/* Sub-navigation tabs */}
-                        <div className="flex border-b border-[#E7E4DF] bg-[#FAF8F5] overflow-x-auto select-none shrink-0">
-                            <button
-                                onClick={() => setActiveTab('toggles')}
-                                className={`px-3 py-3 font-mono text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'toggles'
-                                    ? 'border-[#141413] text-[#141413] font-semibold bg-white'
-                                    : 'border-transparent text-[#716E68] hover:text-[#141413]'
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">toggle_on</span>
-                                <span>Switches ({Object.values(toggles).filter(Boolean).length}/10)</span>
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('templates')}
-                                className={`px-3 py-3 font-mono text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'templates'
-                                    ? 'border-[#141413] text-[#141413] font-semibold bg-white'
-                                    : 'border-transparent text-[#716E68] hover:text-[#141413]'
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                                <span>Templates</span>
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('artist')}
-                                className={`px-3 py-3 font-mono text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'artist'
-                                    ? 'border-[#141413] text-[#141413] font-semibold bg-white'
-                                    : 'border-transparent text-[#716E68] hover:text-[#141413]'
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">person</span>
-                                <span>Content</span>
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('atmosphere')}
-                                className={`px-3 py-3 font-mono text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'atmosphere'
-                                    ? 'border-[#141413] text-[#141413] font-semibold bg-white'
-                                    : 'border-transparent text-[#716E68] hover:text-[#141413]'
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">palette</span>
-                                <span>Theme</span>
-                            </button>
-                        </div>
-
-                        {/* TAB CONTENTS */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-
-                            {/* TAB 1: FEATURE TOGGLE SWITCHES */}
-                            {activeTab === 'toggles' && (
-                                <div className="space-y-4">
-                                    <div className="border-b border-[#E7E4DF] pb-3">
-                                        <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413]">
-                                            Feature Switches
-                                        </h2>
-                                        <p className="font-mono text-xs text-[#716E68] mt-1">
-                                            Enable or disable components shown in the live preview.
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-2.5">
-                                        {[
-                                            {
-                                                key: 'provenanceBadge' as keyof FeatureToggles,
-                                                title: 'Provenance Badge',
-                                                desc: 'Show verified atelier registry badge and token seal.',
-                                                icon: 'verified_user',
-                                                tag: 'Registry'
-                                            },
-                                            {
-                                                key: 'dualLanguage' as keyof FeatureToggles,
-                                                title: 'Dual-Language Text',
-                                                desc: 'Show side-by-side translated curatorial statement.',
-                                                icon: 'translate',
-                                                tag: 'Editorial'
-                                            },
-                                            {
-                                                key: 'kilnProcessLog' as keyof FeatureToggles,
-                                                title: 'Process & Firing Log',
-                                                desc: 'Display studio temperatures, firing hours, and craft steps.',
-                                                icon: 'local_fire_department',
-                                                tag: 'Craft'
-                                            },
-                                            {
-                                                key: 'collectorPricing' as keyof FeatureToggles,
-                                                title: 'Pricing & Valuation',
-                                                desc: 'Toggle public collector prices or inquiry-only mode.',
-                                                icon: 'payments',
-                                                tag: 'Commerce'
-                                            },
-                                            {
-                                                key: 'curatorFootnotes' as keyof FeatureToggles,
-                                                title: 'Footnotes & Citations',
-                                                desc: 'Add exhibition references and scholarly notes.',
-                                                icon: 'menu_book',
-                                                tag: 'Scholarly'
-                                            },
-                                            {
-                                                key: 'privateViewingRoom' as keyof FeatureToggles,
-                                                title: 'Private Viewing Room',
-                                                desc: 'Lock reserve artworks behind a collector passkey.',
-                                                icon: 'lock',
-                                                tag: 'VIP'
-                                            },
-                                            {
-                                                key: 'coaSeal' as keyof FeatureToggles,
-                                                title: 'Certificate of Authenticity',
-                                                desc: 'Include inspectable digital CoA stamp and NFC seal.',
-                                                icon: 'shield_with_heart',
-                                                tag: 'Authenticity'
-                                            },
-                                            {
-                                                key: 'microSpecs' as keyof FeatureToggles,
-                                                title: 'Technical Specs',
-                                                desc: 'List clay sourcing, dimensions, crated weight, and cycle.',
-                                                icon: 'data_object',
-                                                tag: 'Technical'
-                                            },
-                                            {
-                                                key: 'timelineChronology' as keyof FeatureToggles,
-                                                title: 'Exhibition Timeline',
-                                                desc: 'Show chronological museum and exhibition history.',
-                                                icon: 'history',
-                                                tag: 'History'
-                                            },
-                                            {
-                                                key: 'commissionGateway' as keyof FeatureToggles,
-                                                title: 'Commission Requests',
-                                                desc: 'Allow collectors to submit custom commission inquiries.',
-                                                icon: 'design_services',
-                                                tag: 'Bespoke'
-                                            }
-                                        ].map((feature) => {
-                                            const enabled = toggles[feature.key];
-                                            return (
-                                                <div
-                                                    key={feature.key}
-                                                    onClick={() => handleToggle(feature.key)}
-                                                    className={`p-3.5 border transition-all cursor-pointer flex items-start gap-3 select-none ${enabled
-                                                        ? 'border-[#141413] bg-[#FAF8F5] shadow-xs'
-                                                        : 'border-[#E7E4DF] bg-white opacity-80 hover:opacity-100 hover:border-[#141413]/40'
-                                                        }`}
-                                                >
-                                                    <div className="pt-0.5">
-                                                        <span
-                                                            className="material-symbols-outlined text-base"
-                                                            style={{ color: enabled ? accentColor : '#716E68' }}
-                                                        >
-                                                            {feature.icon}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <span className="font-mono text-xs font-semibold text-[#141413]">
-                                                                {feature.title}
-                                                            </span>
-                                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border border-[#E7E4DF] uppercase text-[#716E68]">
-                                                                {feature.tag}
-                                                            </span>
-                                                        </div>
-                                                        <p className="font-mono text-[11px] text-[#716E68] mt-1 leading-relaxed">
-                                                            {feature.desc}
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Tactile Toggle Switch */}
-                                                    <div className="pt-1">
-                                                        <div
-                                                            className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out ${enabled ? 'bg-[#141413]' : 'bg-[#E7E4DF]'
-                                                                }`}
-                                                        >
-                                                            <div
-                                                                className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${enabled ? 'translate-x-4' : 'translate-x-0'
-                                                                    }`}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 2: MASTER TEMPLATES */}
-                            {activeTab === 'templates' && (
-                                <div className="space-y-4">
-                                    <div className="border-b border-[#E7E4DF] pb-3">
-                                        <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413]">
-                                            Templates
-                                        </h2>
-                                        <p className="font-mono text-xs text-[#716E68] mt-1">
-                                            One-click presets with curated colors, fonts, and layouts.
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {templates.map(preset => (
-                                            <div
-                                                key={preset.id}
-                                                onClick={() => applyTemplate(preset)}
-                                                className={`p-4 border transition-all cursor-pointer ${activeTemplate === preset.id
-                                                    ? 'border-[#141413] bg-[#FAF8F5] ring-1 ring-black shadow-sm'
-                                                    : 'border-[#E7E4DF] bg-white hover:border-[#141413]/50'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-serif text-sm font-bold text-[#141413] block">
-                                                            {preset.name}
-                                                        </span>
-                                                        <span className="font-mono text-[10px] text-[#716E68] uppercase tracking-wider">
-                                                            {preset.subtitle}
-                                                        </span>
-                                                    </div>
-                                                    {activeTemplate === preset.id && (
-                                                        <span className="font-mono text-[10px] bg-[#141413] text-white px-2 py-0.5 uppercase tracking-wider font-semibold">
-                                                            Active
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <p className="font-mono text-xs text-[#716E68] mt-2 leading-relaxed">
-                                                    {preset.description}
-                                                </p>
-
-                                                <div className="mt-3 flex items-center justify-between border-t border-[#E7E4DF] pt-3">
-                                                    <div className="flex items-center gap-1.5">
-                                                        {preset.swatches.map((color, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-2xs"
-                                                                style={{ backgroundColor: color }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <span className="font-mono text-[10px] text-[#141413] font-semibold underline">
-                                                        Apply Template →
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 3: ARTIST CONTENT SWITCHER */}
-                            {activeTab === 'artist' && (
-                                <div className="space-y-5">
-                                    <div className="border-b border-[#E7E4DF] pb-3">
-                                        <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413]">
-                                            Sample Artists
-                                        </h2>
-                                        <p className="font-mono text-xs text-[#716E68] mt-1">
-                                            Switch sample data to preview across creative disciplines.
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {Object.values(ARTIST_PROFILES).map((prof) => (
-                                            <div
-                                                key={prof.id}
-                                                onClick={() => {
-                                                    setActiveArtistId(prof.id);
-                                                    showToast(`Portfolio content updated to ${prof.name}`);
-                                                }}
-                                                className={`p-4 border transition-all cursor-pointer ${activeArtistId === prof.id
-                                                    ? 'border-[#141413] bg-[#FAF8F5] ring-1 ring-black shadow-sm'
-                                                    : 'border-[#E7E4DF] bg-white hover:border-[#141413]/40'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="font-serif text-base font-bold text-[#141413]">{prof.name}</h3>
-                                                    {activeArtistId === prof.id && (
-                                                        <span className="bg-emerald-600 text-white font-mono text-[9px] px-1.5 py-0.5 uppercase tracking-wider font-semibold">
-                                                            Active Preset
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className="font-mono text-xs text-[#716E68] block mt-0.5">{prof.discipline}</span>
-                                                <span className="font-mono text-[10px] text-[#716E68] opacity-80 block">{prof.locations}</span>
-
-                                                <p className="font-mono text-[11px] text-[#141413] mt-2 line-clamp-2 italic">
-                                                    "{prof.heroHeadline}"
-                                                </p>
-
-                                                <div className="mt-3 grid grid-cols-3 gap-2">
-                                                    {prof.series.map((s, idx) => (
-                                                        <div key={idx} className="aspect-video overflow-hidden bg-neutral-200 border border-black/10">
-                                                            <img src={s.img} alt={s.name} className="w-full h-full object-cover" />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 4: ATMOSPHERE & THEME */}
-                            {activeTab === 'atmosphere' && (
-                                <div className="space-y-6">
-                                    {/* Canvas Ground */}
-                                    <div className="space-y-3">
-                                        <label className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413] block">
-                                            Canvas Background
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[
-                                                { id: 'basalt', name: 'Volcanic Basalt', desc: 'Dark Charcoal', color: '#181816' },
-                                                { id: 'bone', name: 'Alabaster Bone', desc: 'Pure White', color: '#FFFFFF' },
-                                                { id: 'linen', name: 'Unbleached Linen', desc: 'Natural Flax', color: '#C8B89A' },
-                                                { id: 'parchment', name: 'Aged Parchment', desc: 'Vellum Amber', color: '#C9A96B' },
-                                                { id: 'ivory', name: 'Collector Ivory', desc: 'Warm Golden Cream', color: '#F2E8D0' },
-                                                { id: 'pearl', name: 'Lustre Pearl', desc: 'Blush Rose Lustre', color: '#D4C5BF' },
-                                                { id: 'sand', name: 'Dune Sand', desc: 'Golden Desert Dune', color: '#C4A06A' },
-                                                { id: 'cream', name: 'Atelier Cream', desc: 'Studio Cream', color: '#FFFDF8' },
-                                                { id: 'obsidian', name: 'Obsidian Void', desc: 'Jet Black Void', color: '#0D0D0C' },
-                                                { id: 'midnight', name: 'Midnight Nocturne', desc: 'Midnight Navy', color: '#0B111E' },
-                                            ].map(g => (
-                                                <button
-                                                    key={g.id}
-                                                    onClick={() => setCanvasColor(g.id as any)}
-                                                    className={`p-3 border text-left cursor-pointer transition-all ${canvasColor === g.id
-                                                        ? 'border-[#141413] ring-1 ring-black shadow-xs bg-[#FAF8F5]'
-                                                        : 'border-[#E7E4DF] bg-white hover:border-[#141413]/40'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-2 mb-1.5">
-                                                        <span className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: g.color }} />
-                                                        <span className="font-mono text-xs font-semibold">{g.name}</span>
-                                                    </div>
-                                                    <span className="font-mono text-[10px] text-[#716E68]">{g.desc}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Accent Swatch Picker */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <label className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413]">
-                                                Accent Color
-                                            </label>
-                                            <span className="font-mono text-xs font-semibold text-[#141413]">{accentColor}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {['#C25E3E', '#4A5B4E', '#1B4965', '#8C6D46', '#A23B3B', '#002147', '#7D6E5A', '#5C4632', '#8C6239', '#141413', '#7C3AED'].map(color => (
-                                                <button
-                                                    key={color}
-                                                    onClick={() => setAccentColor(color)}
-                                                    style={{ backgroundColor: color }}
-                                                    className={`w-7 h-7 rounded-full border cursor-pointer transition-transform hover:scale-110 ${accentColor === color ? 'ring-2 ring-offset-2 ring-black scale-105 border-white' : 'border-black/10'
-                                                        }`}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Typography Pairing */}
-                                    <div className="space-y-3">
-                                        <label className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413] block">
-                                            Typography Pairings
-                                        </label>
-
-                                        <div className="space-y-2">
-                                            <label
-                                                onClick={() => setTypography('cormorant')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'cormorant' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'cormorant'} onChange={() => setTypography('cormorant')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-serif text-sm italic font-semibold text-[#141413]">Cormorant Garamond + Inter</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">Classic serif titles with clean modern sans body.</p>
-                                                </div>
-                                            </label>
-
-                                            <label
-                                                onClick={() => setTypography('playfair')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'playfair' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'playfair'} onChange={() => setTypography('playfair')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-serif text-sm font-semibold text-[#141413]">Playfair Display + JetBrains Mono</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">High-contrast display serif with technical monospace.</p>
-                                                </div>
-                                            </label>
-
-                                            <label
-                                                onClick={() => setTypography('syne')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'syne' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'syne'} onChange={() => setTypography('syne')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-sans text-sm font-bold tracking-tight text-[#141413]">Syne Modernism + Archival Mono</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">Modern avant-garde sans with minimal mono accents.</p>
-                                                </div>
-                                            </label>
-
-                                            <label
-                                                onClick={() => setTypography('inter')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'inter' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'inter'} onChange={() => setTypography('inter')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-sans text-sm font-medium tracking-tight text-[#141413]">Inter Neo-Grotesque Sans</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">Clean, modern neutral sans with high legibility.</p>
-                                                </div>
-                                            </label>
-
-                                            <label
-                                                onClick={() => setTypography('manrope')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'manrope' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'manrope'} onChange={() => setTypography('manrope')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-sans text-sm font-semibold tracking-tight text-[#141413]">Manrope Modern Artisan</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">Warm geometric sans for craft and editorial portfolios.</p>
-                                                </div>
-                                            </label>
-
-                                            <label
-                                                onClick={() => setTypography('ibm-plex-sans')}
-                                                className={`flex items-start gap-3 p-3 border cursor-pointer transition-all ${typography === 'ibm-plex-sans' ? 'border-[#141413] bg-[#FAF8F5]' : 'border-[#E7E4DF] bg-white'
-                                                    }`}
-                                            >
-                                                <input type="radio" checked={typography === 'ibm-plex-sans'} onChange={() => setTypography('ibm-plex-sans')} className="mt-1 accent-[#141413]" />
-                                                <div>
-                                                    <span className="font-mono text-sm font-medium tracking-tight text-[#141413]">IBM Plex Utilitarian Ledger</span>
-                                                    <p className="font-mono text-[11px] text-[#716E68] mt-0.5">Technical industrial font for specification layouts.</p>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* Archetype Layout */}
-                                    <div className="space-y-3">
-                                        <label className="font-mono text-xs font-bold uppercase tracking-wider text-[#141413] block">
-                                            Layout Grid
-                                        </label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            {(['editorial', 'gallery', 'masonry', 'auction', 'artisan', 'design', 'studio'] as const).map(mode => (
-                                                <button
-                                                    key={mode}
-                                                    onClick={() => setArchetype(mode)}
-                                                    className={`p-2.5 border text-center font-mono text-xs capitalize cursor-pointer transition-all ${archetype === mode
-                                                        ? 'border-[#141413] bg-[#FAF8F5] font-semibold text-black shadow-2xs'
-                                                        : 'border-[#E7E4DF] bg-white text-[#716E68]'
-                                                        }`}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
-
-                        {/* Quick Footer Summary */}
-                        <div className="p-3 bg-[#FAF8F5] border-t border-[#E7E4DF] flex items-center justify-between text-[11px] font-mono text-[#716E68] shrink-0">
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                <span>Active Content: {currentArtist.name}</span>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setHostSmallScreenTab('preview');
-                                    setIsPreviewExpanded(true);
-                                }}
-                                className="text-[#141413] underline hover:opacity-75 cursor-pointer font-semibold flex items-center gap-1"
-                            >
-                                <span>Full Preview</span>
-                                <span className="material-symbols-outlined text-[13px]">fullscreen</span>
-                            </button>
-                        </div>
-
-                    </div>
-                )}
-
-                {/* RIGHT COLUMN: Interactive High-Fidelity Studio Live Viewport */}
-                {(isPreviewExpanded || hostSmallScreenTab === 'preview' || window.innerWidth >= 1024) && (
-                    <div
-                        ref={outerCanvasRef}
-                        id="customizer-viewport-container"
-                        className={`${isPreviewExpanded ? 'col-span-12 w-full p-2 sm:p-5 lg:p-8' : 'lg:col-span-7 xl:col-span-8 p-2 sm:p-4 lg:p-6'
-                            } bg-[#DCD8D0] h-full min-h-0 min-w-0 overflow-x-auto overflow-y-auto preview-scroll-canvas transition-all duration-300 relative flex flex-col`}
-                        style={{ WebkitOverflowScrolling: 'touch' }}
-                    >
-                        {/* Scroll Navigation Jump Bar & Nudge Controls (Sticky Header for Preview) */}
-                        <div className="sticky top-0 z-30 mb-3 bg-[#141413]/90 text-white backdrop-blur-md px-3 sm:px-4 py-2 shadow-lg flex items-center justify-between gap-2 font-mono text-xs flex-wrap border border-white/10 rounded-sm">
-
-                            {/* Quick jump anchor links */}
-                            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                                <span className="text-[10px] uppercase tracking-wider text-white/50 pr-1 hidden sm:inline">Jump:</span>
-                                <button onClick={() => scrollToPreviewSection('hero-section')} className="hover:text-emerald-400 cursor-pointer text-[11px] px-1">Hero</button>
-                                <span className="text-white/20">·</span>
-                                <button onClick={() => scrollToPreviewSection('collections-section')} className="hover:text-emerald-400 cursor-pointer text-[11px] px-1">Series</button>
-                                <span className="text-white/20">·</span>
-                                <button onClick={() => scrollToPreviewSection('masterwork-section')} className="hover:text-emerald-400 cursor-pointer text-[11px] px-1">Masterwork</button>
-                                <span className="text-white/20">·</span>
-                                <button onClick={() => scrollToPreviewSection('works-section')} className="hover:text-emerald-400 cursor-pointer text-[11px] px-1">Catalog ({filteredArtworks.length})</button>
-                                <span className="text-white/20">·</span>
-                                {toggles.kilnProcessLog && (
-                                    <>
-                                        <button onClick={() => scrollToPreviewSection('process-section')} className="hover:text-emerald-400 cursor-pointer text-[11px] px-1">Telemetry</button>
-                                        <span className="text-white/20">·</span>
-                                    </>
-                                )}
-                                <button onClick={() => scrollToPreviewSection('commission-section')} className="hover:text-amber-400 cursor-pointer text-[11px] font-semibold px-1" style={{ color: accentColor }}>Inquire</button>
-                            </div>
-
-                            {/* Scroll Nudge Controls & Directional Arrows */}
-                            <div className="flex items-center gap-1 ml-auto">
-                                <span className="text-[10px] text-white/50 mr-1 hidden md:inline">Scroll:</span>
-                                <button
-                                    onClick={() => nudgeScroll('up')}
-                                    className="w-6 h-6 rounded-xs bg-white/10 hover:bg-white/25 flex items-center justify-center cursor-pointer transition-colors"
-                                    title="Scroll Preview Up"
-                                >
-                                    <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
-                                </button>
-                                <button
-                                    onClick={() => nudgeScroll('down')}
-                                    className="w-6 h-6 rounded-xs bg-white/10 hover:bg-white/25 flex items-center justify-center cursor-pointer transition-colors"
-                                    title="Scroll Preview Down"
-                                >
-                                    <span className="material-symbols-outlined text-[14px]">arrow_downward</span>
-                                </button>
-                                {previewScaleMode === 'actual' && (
-                                    <>
-                                        <button
-                                            onClick={() => nudgeScroll('left')}
-                                            className="w-6 h-6 rounded-xs bg-white/10 hover:bg-white/25 flex items-center justify-center cursor-pointer transition-colors"
-                                            title="Scroll Preview Left"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-                                        </button>
-                                        <button
-                                            onClick={() => nudgeScroll('right')}
-                                            className="w-6 h-6 rounded-xs bg-white/10 hover:bg-white/25 flex items-center justify-center cursor-pointer transition-colors"
-                                            title="Scroll Preview Right"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                                        </button>
-                                    </>
-                                )}
-
-                                {/* Back to top shortcut */}
-                                <button
-                                    onClick={() => {
-                                        const target = scrollMode === 'frame' ? innerMockupRef.current : outerCanvasRef.current;
-                                        if (target) target.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    className="px-2 py-0.5 rounded-xs bg-white/10 hover:bg-white/25 text-[10px] uppercase font-semibold cursor-pointer ml-1"
-                                    title="Scroll to Top"
-                                >
-                                    Top
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Canvas Wrapper */}
-                        <div className="w-full flex-1 flex flex-col items-center justify-start pb-20">
-
-                            {/* Perfectly Responsive Device Mockup Shell */}
-                            <div
-                                id="portfolio-mockup-frame"
-                                className={`transition-all duration-300 shadow-2xl bg-white flex flex-col shrink-0 relative ${isMobileViewport
-                                    ? 'rounded-[36px] sm:rounded-[42px] border-[8px] sm:border-[10px] border-[#181715] overflow-hidden'
-                                    : isTabletViewport
-                                        ? 'rounded-[20px] sm:rounded-[26px] border-[6px] sm:border-[8px] border-[#252422] overflow-hidden'
-                                        : 'rounded-md border border-[#C5BFB4] overflow-hidden'
-                                    } ${previewScaleMode === 'fit' && !isMobileViewport && !isTabletViewport ? 'w-full' : ''}`}
-                                style={{
-                                    width: previewScaleMode === 'fit'
-                                        ? (isMobileViewport ? 'min(390px, 100%)' : isTabletViewport ? 'min(768px, 100%)' : '100%')
-                                        : (isMobileViewport ? '390px' : isTabletViewport ? '768px' : '1240px'),
-                                    minWidth: previewScaleMode === 'actual'
-                                        ? (isMobileViewport ? '390px' : isTabletViewport ? '768px' : '1240px')
-                                        : undefined,
-                                    maxWidth: isMobileViewport ? '390px' : isTabletViewport ? '768px' : '1240px',
-                                    maxHeight: scrollMode === 'frame' ? 'calc(100vh - 12rem)' : undefined,
-                                    height: scrollMode === 'frame' ? 'calc(100vh - 12rem)' : undefined
-                                }}
-                            >
-                                {/* 1. Mobile Top Dynamic Island & Status Bar */}
-                                {isMobileViewport && (
-                                    <div className="bg-[#181715] text-white px-5 pt-2 pb-1.5 flex flex-col items-center select-none shrink-0 z-30">
-                                        <div className="w-full flex items-center justify-between text-[11px] font-mono opacity-80 px-1">
-                                            <span>9:41</span>
-                                            {/* Dynamic Island Pill */}
-                                            <div className="w-20 h-4 bg-black rounded-full flex items-center justify-center gap-1.5 shadow-inner">
-                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                <span className="w-2 h-2 rounded-full bg-white/20"></span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[13px]">wifi</span>
-                                                <span className="material-symbols-outlined text-[13px]">battery_full</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Simulated Mobile Browser URL Bar */}
-                                        <div className="w-full mt-1.5 bg-white/10 rounded-full px-3 py-1 flex items-center justify-between text-[10px] font-mono">
-                                            <div className="flex items-center gap-1.5 truncate">
-                                                <span className="material-symbols-outlined text-[11px] text-emerald-400">lock</span>
-                                                <span className="truncate">atelier.art/@{currentArtist.id}</span>
-                                            </div>
-                                            <span className="text-[9px] uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-1.5 rounded-full">
-                                                DNS-SEC
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 2. Tablet Top Status & Minimalist Chrome Bar */}
-                                {isTabletViewport && (
-                                    <div className="h-9 bg-[#FAF8F5] border-b border-[#E7E4DF] px-4 flex items-center justify-between select-none shrink-0 z-20">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="h-3 w-px bg-[#E7E4DF] mx-1"></span>
-                                            <span className="material-symbols-outlined text-[13px] text-emerald-700">lock</span>
-                                            <span className="font-mono text-[10px] text-[#141413] font-medium">
-                                                atelier.art/@{currentArtist.id} · Tablet Monograph
-                                            </span>
-                                        </div>
-                                        <span className="font-mono text-[9px] bg-black text-white px-2 py-0.5 rounded-xs uppercase tracking-wider font-semibold">
-                                            iPad 768px
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* 3. Desktop Simulated High-End Browser Chrome Bar */}
-                                {!isMobileViewport && !isTabletViewport && (
-                                    <div className="h-10 bg-[#FAF8F5] border-b border-[#E7E4DF] px-3 sm:px-4 flex items-center justify-between select-none shrink-0 z-20">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
-                                            <span className="h-3.5 w-px bg-[#E7E4DF] mx-1"></span>
-                                            <span className="material-symbols-outlined text-[14px] text-emerald-700 shrink-0">lock</span>
-                                            <span className="font-mono text-[11px] text-[#141413] font-medium truncate">
-                                                atelier.art/@{currentArtist.id}?view={archetype}&layout=full_monograph
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <span className="font-mono text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-xs uppercase tracking-wider font-semibold">
-                                                DNS-SEC Verified
-                                            </span>
-                                            <span className="font-mono text-[9px] bg-[#141413] text-white px-1.5 py-0.5 rounded-xs uppercase tracking-wider font-semibold">
-                                                DESKTOP VIEW
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* LIVE PORTFOLIO PREVIEW CANVAS */}
-                                <div
-                                    ref={innerMockupRef}
-                                    className={`flex-1 transition-colors duration-300 relative ${theme.bg} ${theme.text} ${scrollMode === 'frame' ? 'overflow-y-auto overflow-x-hidden preview-viewport-window' : ''
-                                        }`}
-                                    style={{
-                                        WebkitOverflowScrolling: 'touch',
-                                        scrollBehavior: 'smooth'
-                                    }}
-                                >
-                                    <div
-                                        className={`transition-all duration-300 ${isMobileViewport
-                                            ? 'p-4 sm:p-5 space-y-10'
-                                            : isTabletViewport
-                                                ? 'p-6 sm:p-8 space-y-12'
-                                                : 'p-6 sm:p-12 lg:p-16 space-y-16'
-                                            }`}
-                                        style={{
-                                            paddingTop: gridDensity === 'compact' ? (isMobileViewport ? '1.5rem' : '2rem') : gridDensity === 'airy' ? (isMobileViewport ? '3rem' : '4.5rem') : (isMobileViewport ? '2rem' : '3.5rem')
-                                        }}
-                                    >
-
-                                        {/* 1. Monograph Navigation Bar (Mobile Drawer vs Desktop Ribbon) */}
-                                        <div className={`border-b ${theme.border} pb-4 flex flex-col justify-between gap-3 relative`}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-baseline gap-2.5">
-                                                    <span className={`font-bold tracking-tight ${getHeaderFontClass()} ${isMobileViewport ? 'text-xl' : 'text-2xl sm:text-3xl'}`}>
-                                                        {currentArtist.name}
-                                                    </span>
-                                                    <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest opacity-60">
-                                                        {isMobileViewport ? 'Monograph' : 'Atelier Monograph & Provenance'}
-                                                    </span>
-                                                </div>
-
-                                                {/* Mobile Hamburger Drawer Trigger */}
-                                                {isMobileViewport ? (
-                                                    <button
-                                                        onClick={() => setSimulatedMobileNavOpen(!simulatedMobileNavOpen)}
-                                                        className="p-1.5 border border-black/20 hover:bg-black/5 cursor-pointer rounded-xs flex items-center gap-1 font-mono text-[10px]"
-                                                        title="Toggle Monograph Navigation"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[16px]">
-                                                            {simulatedMobileNavOpen ? 'close' : 'menu'}
-                                                        </span>
-                                                        <span>{simulatedMobileNavOpen ? 'Close' : 'Menu'}</span>
-                                                    </button>
-                                                ) : (
-                                                    <nav className="flex items-center gap-4 sm:gap-6 font-mono text-xs flex-wrap">
-                                                        <button onClick={() => scrollToPreviewSection('works-section')} className="font-semibold border-b pb-0.5 cursor-pointer" style={{ borderColor: accentColor }}>
-                                                            Works ({filteredArtworks.length})
-                                                        </button>
-                                                        <button onClick={() => scrollToPreviewSection('collections-section')} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
-                                                            Series ({currentArtist.series.length})
-                                                        </button>
-                                                        {toggles.kilnProcessLog && (
-                                                            <button onClick={() => scrollToPreviewSection('process-section')} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
-                                                                Process
-                                                            </button>
-                                                        )}
-                                                        <button onClick={() => scrollToPreviewSection('curator-review')} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
-                                                            Provenance
-                                                        </button>
-                                                        {toggles.commissionGateway && (
-                                                            <button
-                                                                onClick={() => scrollToPreviewSection('commission-section')}
-                                                                className="font-semibold flex items-center gap-1.5 cursor-pointer"
-                                                                style={{ color: accentColor }}
-                                                            >
-                                                                <span>Commission</span>
-                                                                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: accentColor }}></span>
-                                                            </button>
-                                                        )}
-                                                    </nav>
-                                                )}
-                                            </div>
-
-                                            {/* Simulated Mobile Dropdown Menu Sheet */}
-                                            {isMobileViewport && simulatedMobileNavOpen && (
-                                                <div className={`mt-2 p-4 border border-black/15 shadow-xl font-mono text-xs space-y-3 animate-fade-in ${theme.subtleBg}`}>
-                                                    <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: theme.border }}>
-                                                        <span className="text-[10px] uppercase font-bold tracking-wider">Navigation Index</span>
-                                                        <span className="text-[10px] text-emerald-600 font-semibold">Atelier Online</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                                        <button
-                                                            onClick={() => {
-                                                                scrollToPreviewSection('works-section');
-                                                                setSimulatedMobileNavOpen(false);
-                                                            }}
-                                                            className="p-2 border border-black/10 text-left hover:bg-black/5"
-                                                        >
-                                                            Selected Works ({filteredArtworks.length})
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                scrollToPreviewSection('collections-section');
-                                                                setSimulatedMobileNavOpen(false);
-                                                            }}
-                                                            className="p-2 border border-black/10 text-left hover:bg-black/5"
-                                                        >
-                                                            Series ({currentArtist.series.length})
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                scrollToPreviewSection('masterwork-section');
-                                                                setSimulatedMobileNavOpen(false);
-                                                            }}
-                                                            className="p-2 border border-black/10 text-left hover:bg-black/5"
-                                                        >
-                                                            Featured Piece
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                scrollToPreviewSection('process-section');
-                                                                setSimulatedMobileNavOpen(false);
-                                                            }}
-                                                            className="p-2 border border-black/10 text-left hover:bg-black/5"
-                                                        >
-                                                            Studio Process
-                                                        </button>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            scrollToPreviewSection('commission-section');
-                                                            setSimulatedMobileNavOpen(false);
-                                                        }}
-                                                        style={{ backgroundColor: accentColor }}
-                                                        className="w-full py-2.5 text-white font-mono text-xs uppercase tracking-wider font-semibold text-center block shadow-sm"
-                                                    >
-                                                        Reserve Commission Slot →
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 2. Direct Commission Protocol Indicator Banner */}
-                                        {toggles.commissionGateway && (
-                                            <div
-                                                className={`p-3 sm:p-4 border font-mono text-xs transition-all duration-300 ${theme.cardBg} ${theme.cardBorder} ${isMobileViewport
-                                                    ? 'flex flex-col items-start gap-2 text-[11px]'
-                                                    : 'flex flex-row items-center justify-between gap-3'
-                                                    } ${highlightedKey === 'commissionGateway' ? 'ring-2 ring-emerald-500 scale-[1.01]' : ''}`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                                                    <span className="font-semibold text-emerald-600">Active Commission Protocol:</span>
-                                                    <span className="truncate">2 Slots Open for 2026</span>
-                                                </div>
-                                                <button onClick={() => scrollToPreviewSection('commission-section')} className="text-[11px] font-semibold underline cursor-pointer hover:opacity-100 flex items-center gap-1">
-                                                    <span>Reserve Slot</span>
-                                                    <span className="material-symbols-outlined text-[13px]">arrow_downward</span>
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* 3. Hero Statement Section (Mobile Stacked vs Desktop Multi-Column) */}
-                                        <div
-                                            id="hero-section"
-                                            className={`pt-1 ${isMobileViewport
-                                                ? 'flex flex-col gap-6'
-                                                : isTabletViewport
-                                                    ? 'grid grid-cols-12 gap-6 items-end'
-                                                    : 'grid grid-cols-12 gap-8 lg:gap-12 items-end'
-                                                }`}
-                                        >
-                                            <div className={`${isMobileViewport ? 'w-full' : isTabletViewport ? 'col-span-7' : 'col-span-8'} space-y-4 sm:space-y-5`}>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-mono text-[9px] sm:text-[10px] bg-[#141413] text-white px-2 py-0.5 tracking-widest uppercase">
-                                                        {currentArtist.discipline}
-                                                    </span>
-                                                    {toggles.provenanceBadge && (
-                                                        <span className="font-mono text-[9px] sm:text-[10px] border border-emerald-600 text-emerald-600 px-2 py-0.5 tracking-widest uppercase flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[11px]">verified</span>
-                                                            Verified Atelier
-                                                        </span>
-                                                    )}
-                                                    <span className="font-mono text-[9px] sm:text-[10px] opacity-60 uppercase tracking-widest">
-                                                        {currentArtist.ledgerId}
-                                                    </span>
-                                                </div>
-
-                                                <h2 className={`tracking-tight leading-[1.15] ${getHeaderFontClass()} ${isMobileViewport ? 'text-2xl font-bold' : isTabletViewport ? 'text-3xl sm:text-4xl' : 'text-3xl sm:text-5xl'
-                                                    }`}>
-                                                    {currentArtist.heroHeadline}
-                                                </h2>
-
-                                                {/* Dual-Language Curatorial Monograph Toggle Output */}
-                                                {toggles.dualLanguage && (
-                                                    <div className={`p-3.5 sm:p-5 border-l-2 space-y-1.5 font-serif text-sm italic transition-all duration-300 ${theme.subtleBg} ${highlightedKey === 'dualLanguage' ? 'ring-2 ring-blue-500' : ''}`} style={{ borderColor: accentColor }}>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="font-mono text-[9px] uppercase tracking-widest block not-italic opacity-60">
-                                                                {currentArtist.secondaryLanguage.label}
-                                                            </span>
-                                                            <span className="font-mono text-[9px] opacity-50 not-italic hidden sm:inline">
-                                                                {currentArtist.secondaryLanguage.edition}
-                                                            </span>
-                                                        </div>
-                                                        <p className="opacity-90 leading-relaxed font-sans text-xs">
-                                                            {currentArtist.secondaryLanguage.text}
-                                                        </p>
-                                                    </div>
-                                                )}
-
-                                                {/* Audio Statement Simulator */}
-                                                <div className={`p-3 sm:p-3.5 border flex items-center justify-between gap-3 font-mono text-xs ${theme.cardBg} ${theme.cardBorder}`}>
-                                                    <div className="flex items-center gap-2.5 min-w-0">
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsPlayingAudio(!isPlayingAudio);
-                                                                showToast(isPlayingAudio ? 'Audio recording paused' : 'Playing studio atmospheric audio');
-                                                            }}
-                                                            style={{ backgroundColor: accentColor }}
-                                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white flex items-center justify-center cursor-pointer shadow-xs shrink-0"
-                                                        >
-                                                            <span className="material-symbols-outlined text-sm">
-                                                                {isPlayingAudio ? 'pause' : 'play_arrow'}
-                                                            </span>
-                                                        </button>
-                                                        <div className="truncate">
-                                                            <span className="font-semibold block truncate text-[11px] sm:text-xs">{currentArtist.audioNote.title}</span>
-                                                            <span className="text-[9px] sm:text-[10px] opacity-60 block truncate">{currentArtist.audioNote.location}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Audio waveform */}
-                                                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                                                        {[16, 24, 12, 28, 20, 32, 18, 26].map((h, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                style={{
-                                                                    height: isPlayingAudio ? `${h * (isMobileViewport ? 0.7 : 1)}px` : '4px',
-                                                                    backgroundColor: accentColor
-                                                                }}
-                                                                className="w-0.5 sm:w-1 rounded-full transition-all duration-200"
-                                                            />
-                                                        ))}
-                                                        <span className="font-mono text-[9px] sm:text-[10px] opacity-60 pl-1.5">{currentArtist.audioNote.duration}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Right Bio Column */}
-                                            <div className={`${isMobileViewport ? 'w-full' : isTabletViewport ? 'col-span-5' : 'col-span-4'} space-y-3 ${!isMobileViewport ? `border-l ${theme.border} pl-6` : 'border-t border-black/10 pt-4'}`}>
-                                                <p className="font-sans text-xs sm:text-sm opacity-80 leading-relaxed">
-                                                    {currentArtist.heroSubheadline}
-                                                </p>
-                                                <div className="space-y-1.5 pt-2 border-t border-black/10 font-mono text-[10px] sm:text-[11px]">
-                                                    <div className="flex justify-between gap-2">
-                                                        <span className="opacity-60">Representation:</span>
-                                                        <span className="font-semibold truncate">{currentArtist.representation}</span>
-                                                    </div>
-                                                    <div className="flex justify-between gap-2">
-                                                        <span className="opacity-60">Public Loans:</span>
-                                                        <span className="font-semibold truncate">{currentArtist.publicCollections}</span>
-                                                    </div>
-                                                    <div className="flex justify-between gap-2">
-                                                        <span className="opacity-60">Provenance:</span>
-                                                        <span className="font-semibold text-emerald-600">100% Ledger Hash</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 4. Curated Collections & Series Strip */}
-                                        <div id="collections-section" className="space-y-4 pt-4">
-                                            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: `${accentColor}33` }}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-sm" style={{ color: accentColor }}>folder_special</span>
-                                                    <h3 className="font-mono text-xs uppercase tracking-widest font-bold">
-                                                        Archival Collections & Series ({currentArtist.series.length})
-                                                    </h3>
-                                                </div>
-                                                <span className="font-mono text-[11px] opacity-60 hidden sm:inline">2022 — 2026 Archive</span>
-                                            </div>
-
-                                            {/* Grid changes responsively based on viewport mode */}
-                                            <div className={`grid ${isMobileViewport
-                                                ? 'grid-cols-1 gap-4'
-                                                : isTabletViewport
-                                                    ? 'grid-cols-2 gap-4'
-                                                    : 'grid-cols-3 gap-6'
-                                                }`}>
-                                                {currentArtist.series.map((series, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className={`p-3.5 sm:p-4 border space-y-3 cursor-pointer hover:border-black/40 transition-all ${theme.cardBg} ${theme.cardBorder}`}
-                                                    >
-                                                        <div className="aspect-[16/10] overflow-hidden bg-neutral-200">
-                                                            <img src={series.img} alt={series.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                                                        </div>
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex justify-between items-baseline">
-                                                                <h4 className="font-serif text-sm sm:text-base font-semibold">{series.name}</h4>
-                                                                <span className="font-mono text-[9px] sm:text-[10px] opacity-60">{series.count}</span>
-                                                            </div>
-                                                            <span className="font-mono text-[9px] sm:text-[10px] opacity-60 block">{series.era}</span>
-                                                            <p className="font-sans text-xs opacity-75 line-clamp-2">{series.desc}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Curatorial Critical Reception Pullquote */}
-                                        <div id="curator-review" className={`p-5 sm:p-8 border-y ${theme.border} text-center space-y-2.5 bg-black/5`}>
-                                            <span className="font-mono text-[9px] uppercase tracking-widest text-[#716E68]">Institutional Monograph Review</span>
-                                            <blockquote className={`italic max-w-2xl mx-auto leading-relaxed ${getHeaderFontClass()} ${isMobileViewport ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'
-                                                }`}>
-                                                {currentArtist.review.quote}
-                                            </blockquote>
-                                            <div className="font-mono text-[11px] opacity-75">
-                                                <strong>{currentArtist.review.author}</strong> · {currentArtist.review.role}
-                                            </div>
-                                        </div>
-
-                                        {/* 5. Featured Masterwork Hero Card */}
-                                        <div
-                                            id="masterwork-section"
-                                            className={`p-4 sm:p-8 space-y-6 sm:space-y-8 border transition-all duration-300 ${theme.cardBg} ${theme.cardBorder}`}
-                                        >
-                                            {/* Masterwork Header Bar */}
-                                            <div className={`flex items-center justify-between border-b ${theme.border} pb-3 flex-wrap gap-2`}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-[11px] sm:text-[10px] uppercase font-bold tracking-wider" style={{ color: accentColor }}>
-                                                        Featured Masterwork
-                                                    </span>
-                                                    <span className="opacity-40">·</span>
-                                                    <span className="font-mono text-[11px] sm:text-[10px] opacity-75 font-semibold">INV #{currentArtist.masterwork.id}</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    {toggles.provenanceBadge && (
-                                                        <span className="font-mono text-[9px] sm:text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 flex items-center gap-1 font-semibold">
-                                                            <span className="material-symbols-outlined text-[11px]">verified_user</span>
-                                                            <span>Verified</span>
-                                                        </span>
-                                                    )}
-                                                    {toggles.coaSeal && (
-                                                        <button
-                                                            onClick={() => setCoaModalOpen(true)}
-                                                            className="font-mono text-[9px] sm:text-[10px] bg-white/10 hover:bg-white/20 border border-white/20 px-2 py-0.5 flex items-center gap-1 opacity-90 cursor-pointer"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[11px]">qr_code_scanner</span>
-                                                            <span>CoA Seal</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Masterwork Content Layout: Stacked on Mobile vs Split on Desktop */}
-                                            <div className={`${isMobileViewport
-                                                ? 'flex flex-col gap-6'
-                                                : isTabletViewport
-                                                    ? 'grid grid-cols-12 gap-6 items-center'
-                                                    : 'grid grid-cols-12 gap-8 lg:gap-12 items-center'
-                                                }`}>
-                                                <div className={`${isMobileViewport ? 'w-full' : isTabletViewport ? 'col-span-6' : 'col-span-7'} space-y-3`}>
-                                                    <div className="overflow-hidden relative group aspect-[4/3] bg-neutral-200">
-                                                        <img
-                                                            src={currentArtist.masterwork.images[masterworkAngle]}
-                                                            alt={currentArtist.masterwork.title}
-                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
-                                                        />
-                                                        <div className="absolute top-2.5 left-2.5 bg-black/80 text-white font-mono text-[9px] px-2 py-0.5 uppercase tracking-wider">
-                                                            Angle: {masterworkAngle.toUpperCase()}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Interactive Angle Switcher */}
-                                                    <div className="flex items-center justify-between font-mono text-xs border p-1.5 bg-black/5" style={{ borderColor: theme.border }}>
-                                                        <span className="text-[9px] opacity-60 uppercase pl-1">Perspective:</span>
-                                                        <div className="flex items-center gap-1">
-                                                            {(['front', 'profile', 'texture', 'spatial'] as const).map(angle => (
-                                                                <button
-                                                                    key={angle}
-                                                                    onClick={() => setMasterworkAngle(angle)}
-                                                                    className={`px-2 py-0.5 text-[9px] sm:text-[10px] uppercase cursor-pointer transition-all ${masterworkAngle === angle
-                                                                        ? 'bg-[#141413] text-white font-semibold'
-                                                                        : 'hover:bg-black/10 text-black/70'
-                                                                        }`}
-                                                                >
-                                                                    {angle}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className={`${isMobileViewport ? 'w-full' : isTabletViewport ? 'col-span-6' : 'col-span-5'} space-y-4`}>
-                                                    <div>
-                                                        <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest opacity-60 block mb-1">
-                                                            Catalog Monograph · Solitary Piece
-                                                        </span>
-                                                        <h3 className={`font-bold tracking-tight ${getHeaderFontClass()} ${isMobileViewport ? 'text-xl' : 'text-2xl sm:text-3xl'}`}>
-                                                            {currentArtist.masterwork.title}
-                                                        </h3>
-                                                        <p className="font-serif italic text-xs sm:text-sm opacity-75 mt-1">
-                                                            {currentArtist.masterwork.subtitle}
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Micro-Specs Overlay */}
-                                                    {toggles.microSpecs && (
-                                                        <div
-                                                            className={`space-y-1.5 py-2.5 border-y font-mono text-[11px] transition-all duration-300 ${theme.border} ${highlightedKey === 'microSpecs' ? 'ring-2 ring-blue-500 p-2' : ''}`}
-                                                        >
-                                                            <div className="flex justify-between gap-2">
-                                                                <span className="opacity-60">Medium:</span>
-                                                                <span className="font-semibold truncate">{currentArtist.masterwork.medium}</span>
-                                                            </div>
-                                                            <div className="flex justify-between gap-2">
-                                                                <span className="opacity-60">Dimensions:</span>
-                                                                <span className="font-semibold">{currentArtist.masterwork.dims}</span>
-                                                            </div>
-                                                            <div className="flex justify-between gap-2">
-                                                                <span className="opacity-60">Weight:</span>
-                                                                <span className="font-semibold">{currentArtist.masterwork.weight}</span>
-                                                            </div>
-                                                            <div className="flex justify-between gap-2">
-                                                                <span className="opacity-60">Production:</span>
-                                                                <span className="font-semibold truncate">{currentArtist.masterwork.firingOrCasting}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Pricing & Acquisition */}
-                                                    {toggles.collectorPricing ? (
-                                                        <div className={`p-3.5 border space-y-2 font-mono text-xs ${theme.subtleBg} ${theme.border}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[10px] uppercase opacity-70">Primary Market</span>
-                                                                <span className="text-sm sm:text-base font-bold text-emerald-600">{currentArtist.masterwork.price}</span>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => showToast(`Inquiry opened for ${currentArtist.masterwork.title}.`)}
-                                                                style={{ backgroundColor: accentColor }}
-                                                                className="w-full py-2.5 text-white font-mono text-xs uppercase tracking-wider font-semibold"
-                                                            >
-                                                                Acquire Masterwork
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => showToast(`Inquiry opened for ${currentArtist.masterwork.title}.`)}
-                                                            style={{ backgroundColor: accentColor }}
-                                                            className="w-full py-2.5 text-white font-mono text-xs uppercase tracking-wider font-semibold shadow-sm cursor-pointer"
-                                                        >
-                                                            Inquire on Work
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 6. Physical Archive & Selected Artworks Catalog Grid */}
-                                        <div id="works-section" className="space-y-4 pt-2">
-                                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b pb-3" style={{ borderColor: `${accentColor}33` }}>
-                                                <div>
-                                                    <span className="font-mono text-[9px] uppercase tracking-widest opacity-60 block">
-                                                        Physical Catalog & Archive
-                                                    </span>
-                                                    <h3 className={`font-bold tracking-tight ${getHeaderFontClass()} ${isMobileViewport ? 'text-xl' : 'text-2xl sm:text-3xl'}`}>
-                                                        Selected Works ({filteredArtworks.length})
-                                                    </h3>
-                                                </div>
-
-                                                {/* Filter tabs */}
-                                                <div className="flex items-center gap-1.5 font-mono text-xs flex-wrap">
-                                                    {(['all', 'monoliths', 'vessels', 'available'] as const).map(filter => (
-                                                        <button
-                                                            key={filter}
-                                                            onClick={() => setPreviewWorkFilter(filter)}
-                                                            className={`px-2.5 py-0.5 border text-[11px] capitalize cursor-pointer transition-colors ${previewWorkFilter === filter
-                                                                ? 'bg-black text-white border-black font-semibold'
-                                                                : 'bg-transparent border-black/20 opacity-70 hover:opacity-100'
-                                                                }`}
-                                                        >
-                                                            {filter}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Works Grid formatted by device viewport mode */}
-                                            <div className={`grid ${isMobileViewport
-                                                ? 'grid-cols-1 gap-4'
-                                                : isTabletViewport
-                                                    ? 'grid-cols-2 gap-4'
-                                                    : archetype === 'editorial'
-                                                        ? 'grid-cols-1 md:grid-cols-2 gap-8'
-                                                        : archetype === 'gallery' || archetype === 'auction'
-                                                            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
-                                                            : archetype === 'design'
-                                                                ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
-                                                                : archetype === 'artisan' || archetype === 'studio'
-                                                                    ? 'grid-cols-1 md:grid-cols-2 gap-8'
-                                                                    : 'grid-cols-1 sm:grid-cols-2 gap-6'
-                                                }`}>
-                                                {filteredArtworks.map((item, idx) => (
-                                                    <div
-                                                        key={item.id}
-                                                        className={`border p-4 space-y-3 transition-all duration-300 hover:border-black/50 ${theme.cardBg} ${theme.cardBorder}`}
-                                                    >
-                                                        <div className={`overflow-hidden relative group bg-neutral-200 ${idx % 3 === 0 && (archetype === 'editorial' || archetype === 'artisan' || archetype === 'studio') && !isMobileViewport
-                                                            ? 'aspect-[16/10]'
-                                                            : archetype === 'design'
-                                                                ? 'aspect-[4/5]'
-                                                                : 'aspect-square'
-                                                            }`}>
-                                                            <img
-                                                                src={item.img}
-                                                                alt={item.title}
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                            />
-                                                            <div className="absolute top-2 left-2 bg-black/80 text-white font-mono text-[9px] px-1.5 py-0.5 uppercase tracking-wider">
-                                                                {item.id}
-                                                            </div>
-                                                            <div className="absolute bottom-2 right-2">
-                                                                <span className={`font-mono text-[9px] px-1.5 py-0.5 uppercase tracking-wider font-semibold ${item.status === 'Available' ? 'bg-emerald-600 text-white' : 'bg-black/80 text-white/80'
-                                                                    }`}>
-                                                                    {item.status}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex justify-between items-baseline">
-                                                                <h4 className="font-serif text-base font-bold">{item.title}</h4>
-                                                                <span className="font-mono text-[11px] opacity-60">{item.year}</span>
-                                                            </div>
-                                                            <p className="font-serif italic text-xs opacity-75">{item.medium}</p>
-                                                            <div className="flex justify-between font-mono text-[10px] opacity-70 border-t pt-1.5" style={{ borderColor: `${accentColor}22` }}>
-                                                                <span>{item.dims}</span>
-                                                                <span className="truncate max-w-[130px]">{item.provenance}</span>
-                                                            </div>
-
-                                                            <div className="flex items-center justify-between pt-1.5">
-                                                                {toggles.collectorPricing ? (
-                                                                    <span className="font-mono text-xs font-bold text-emerald-600">{item.price}</span>
-                                                                ) : (
-                                                                    <span className="font-mono text-[10px] opacity-60">Price Upon Request</span>
-                                                                )}
-
-                                                                <button
-                                                                    onClick={() => showToast(`Inquiry initiated for ${item.title}`)}
-                                                                    className="font-mono text-[11px] px-2.5 py-0.5 border hover:bg-black hover:text-white transition-colors cursor-pointer"
-                                                                    style={{ borderColor: accentColor, color: accentColor }}
-                                                                >
-                                                                    Inquire →
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* 7. Studio Kiln & Process Log Section */}
-                                        {toggles.kilnProcessLog && (
-                                            <div
-                                                id="process-section"
-                                                className={`p-4 sm:p-6 border space-y-4 transition-all duration-300 ${theme.cardBg} ${theme.cardBorder}`}
-                                            >
-                                                <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: `${accentColor}33` }}>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="material-symbols-outlined text-sm" style={{ color: accentColor }}>local_fire_department</span>
-                                                        <h3 className="font-mono text-xs font-bold uppercase tracking-wider">
-                                                            {currentArtist.processLog.title}
-                                                        </h3>
-                                                    </div>
-                                                    <span className="font-mono text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 font-semibold uppercase">
-                                                        {currentArtist.processLog.subtitle}
-                                                    </span>
-                                                </div>
-
-                                                <div className={`${isMobileViewport ? 'flex flex-col gap-4' : 'grid grid-cols-12 gap-6 items-center'
-                                                    }`}>
-                                                    <div className={`${isMobileViewport ? 'w-full' : 'col-span-5'} space-y-2 font-mono text-xs`}>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="p-2 bg-black/5 border border-black/10">
-                                                                <span className="text-[9px] opacity-60 uppercase block">{currentArtist.processLog.label1}</span>
-                                                                <strong className="text-xs font-semibold">{currentArtist.processLog.val1}</strong>
-                                                            </div>
-                                                            <div className="p-2 bg-black/5 border border-black/10">
-                                                                <span className="text-[9px] opacity-60 uppercase block">{currentArtist.processLog.label2}</span>
-                                                                <span className="text-xs font-semibold">{currentArtist.processLog.val2}</span>
-                                                            </div>
-                                                            <div className="p-2 bg-black/5 border border-black/10">
-                                                                <span className="text-[9px] opacity-60 uppercase block">{currentArtist.processLog.label3}</span>
-                                                                <strong className="text-xs font-bold" style={{ color: accentColor }}>{currentArtist.processLog.val3}</strong>
-                                                            </div>
-                                                            <div className="p-2 bg-black/5 border border-black/10">
-                                                                <span className="text-[9px] opacity-60 uppercase block">{currentArtist.processLog.label4}</span>
-                                                                <span className="text-xs font-semibold">{currentArtist.processLog.val4}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className={`${isMobileViewport ? 'w-full' : 'col-span-7'} bg-black/5 p-3.5 border border-black/10 space-y-2 overflow-x-auto`}>
-                                                        <span className="font-mono text-[9px] uppercase opacity-60 block">Thermal & Stress Curve</span>
-                                                        <div className="h-24 min-w-[280px] flex items-end justify-between gap-1 pt-3 pb-2 border-b border-black/20 font-mono text-[9px]">
-                                                            {[
-                                                                { hour: '0h', temp: '20°C', bar: 'h-4' },
-                                                                { hour: '24h', temp: '450°C', bar: 'h-8' },
-                                                                { hour: '48h', temp: '920°C', bar: 'h-12' },
-                                                                { hour: '72h', temp: '1150°C', bar: 'h-16' },
-                                                                { hour: '96h', temp: '1280°C', bar: 'h-20' },
-                                                                { hour: '120h', temp: '1320°C', bar: 'h-24 bg-red-600' }
-                                                            ].map((point, idx) => (
-                                                                <div key={idx} className="flex flex-col items-center gap-1 flex-1">
-                                                                    <span className="text-[8px] opacity-60">{point.temp}</span>
-                                                                    <div className={`w-full bg-[#141413] ${point.bar} rounded-2xs`}></div>
-                                                                    <span className="text-[8px] opacity-75">{point.hour}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <p className="font-mono text-[10px] opacity-75 leading-tight pt-0.5">
-                                                            {currentArtist.processLog.telemetryDesc}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 8. Exhibition Retrospective Timeline */}
-                                        {toggles.timelineChronology && (
-                                            <div
-                                                id="timeline-section"
-                                                className={`p-4 sm:p-6 border space-y-3 transition-all duration-300 ${theme.cardBg} ${theme.cardBorder}`}
-                                            >
-                                                <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: `${accentColor}33` }}>
-                                                    <span className="font-mono text-xs font-bold uppercase tracking-wider">
-                                                        Provenance & Retrospective
-                                                    </span>
-                                                    <span className="font-mono text-[10px] opacity-60">2020 — 2026 Archive</span>
-                                                </div>
-                                                <div className={`grid ${isMobileViewport ? 'grid-cols-1 gap-2' : isTabletViewport ? 'grid-cols-2 gap-3' : 'grid-cols-4 gap-3'
-                                                    } font-mono text-xs`}>
-                                                    {[
-                                                        { year: '2025', show: 'Art Basel Unlimited', desc: 'Cantonal Museum Showcase' },
-                                                        { year: '2024', show: 'Venice Biennale', desc: 'Arsenale Special Mention' },
-                                                        { year: '2023', show: 'Kyoto Crafts Pavillion', desc: 'Solo Retrospective: The Earth' },
-                                                        { year: '2020', show: 'Studio Foundation', desc: 'Archive Establishment' }
-                                                    ].map((t, idx) => (
-                                                        <div key={idx} className="p-2.5 border border-black/10 space-y-0.5 bg-black/5">
-                                                            <span className="text-xs font-bold" style={{ color: accentColor }}>{t.year}</span>
-                                                            <strong className="block font-sans text-xs">{t.show}</strong>
-                                                            <span className="opacity-70 text-[10px] block truncate">{t.desc}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 9. VIP Private Viewing Room Gateway */}
-                                        {toggles.privateViewingRoom && (
-                                            <div
-                                                id="vip-section"
-                                                className={`p-5 sm:p-8 border text-center space-y-3.5 transition-all duration-300 ${theme.subtleBg} ${theme.border}`}
-                                            >
-                                                <div className="w-8 h-8 mx-auto rounded-full bg-black/10 flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-lg" style={{ color: accentColor }}>lock</span>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <h4 className={`font-bold ${getHeaderFontClass()} ${isMobileViewport ? 'text-lg' : 'text-xl'}`}>
-                                                        VIP Private Viewing Lounge
-                                                    </h4>
-                                                    <p className="font-mono text-xs opacity-75 max-w-md mx-auto">
-                                                        Access 6 unreleased reserve masterworks currently held in studio reserve (Try passkey "VIP2026").
-                                                    </p>
-                                                </div>
-
-                                                {vipUnlocked ? (
-                                                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-800 space-y-1 max-w-sm mx-auto">
-                                                        <span className="material-symbols-outlined text-xl text-emerald-600">lock_open</span>
-                                                        <p className="font-semibold">VIP Passkey Authenticated</p>
-                                                        <p className="text-[10px] opacity-80">6 unreleased reserve pieces are now unlocked.</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className={`flex items-center justify-center gap-2 pt-1 ${isMobileViewport ? 'flex-col w-full' : 'flex-row'}`}>
-                                                        <input
-                                                            type="password"
-                                                            value={vipPasscode}
-                                                            onChange={(e) => setVipPasscode(e.target.value)}
-                                                            placeholder="Passkey (VIP2026)"
-                                                            className={`font-mono text-xs px-3 py-1.5 border border-black/20 bg-white/80 text-[#141413] outline-none ${isMobileViewport ? 'w-full' : 'w-48'}`}
-                                                        />
-                                                        <button
-                                                            onClick={() => {
-                                                                if (vipPasscode.toUpperCase() === 'VIP2026') {
-                                                                    setVipUnlocked(true);
-                                                                    showToast('VIP Vault Unlocked: 6 reserve pieces accessible');
-                                                                } else {
-                                                                    showToast('Invalid passkey. Hint: enter "VIP2026"');
-                                                                }
-                                                            }}
-                                                            style={{ backgroundColor: accentColor }}
-                                                            className={`px-4 py-1.5 text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer ${isMobileViewport ? 'w-full' : ''}`}
-                                                        >
-                                                            Unlock Vault
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* 10. Collector Commission Inquiry Gateway */}
-                                        <div id="commission-section" className={`p-5 sm:p-8 border space-y-4 ${theme.cardBg} ${theme.cardBorder}`}>
-                                            <div className="border-b pb-3 flex flex-col sm:flex-row sm:items-baseline justify-between gap-1" style={{ borderColor: `${accentColor}33` }}>
-                                                <div>
-                                                    <span className="font-mono text-[9px] uppercase tracking-widest opacity-60 block">
-                                                        Direct Inquiry Protocol
-                                                    </span>
-                                                    <h3 className={`font-bold ${getHeaderFontClass()} ${isMobileViewport ? 'text-xl' : 'text-2xl'}`}>
-                                                        Commission a Monolith
-                                                    </h3>
-                                                </div>
-                                                <span className="font-mono text-[11px] text-emerald-600 font-semibold">
-                                                    Accepting Q1/Q2 2026
-                                                </span>
-                                            </div>
-
-                                            {inquirySubmitted ? (
-                                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-800 space-y-1.5 text-center">
-                                                    <span className="material-symbols-outlined text-2xl text-emerald-600">check_circle</span>
-                                                    <p className="font-semibold text-xs sm:text-sm">Inquiry Transmitted to {currentArtist.name} Studio</p>
-                                                    <p className="text-[10px] opacity-80">
-                                                        You will receive a formal studio dossier within 48 hours.
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3.5">
-                                                    <p className="font-sans text-xs opacity-80">
-                                                        Each commissioned piece is conceived for specific architectural coordinates in dialogue with the collector.
-                                                    </p>
-
-                                                    <div className={`grid ${isMobileViewport ? 'grid-cols-1 gap-1.5' : 'grid-cols-3 gap-2'} pt-1`}>
-                                                        {['$10k — $20k', '$20k — $40k', '$40k+ (Monumental)'].map((bracket) => (
-                                                            <button
-                                                                key={bracket}
-                                                                onClick={() => setSelectedBudget(bracket)}
-                                                                className={`p-2 text-left font-mono text-xs border cursor-pointer transition-all ${selectedBudget === bracket
-                                                                    ? 'border-black bg-black text-white font-semibold'
-                                                                    : 'border-black/20 bg-transparent opacity-80 hover:opacity-100'
-                                                                    }`}
-                                                            >
-                                                                <span className="text-[9px] uppercase opacity-60 block">Budget Tier</span>
-                                                                <span className="text-[11px] font-semibold">{bracket}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className={`grid ${isMobileViewport ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-3'} pt-1`}>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Full Name / Curator"
-                                                            className="font-mono text-xs p-2.5 border border-black/20 bg-transparent outline-none w-full"
-                                                        />
-                                                        <input
-                                                            type="email"
-                                                            placeholder="Official Email Address"
-                                                            className="font-mono text-xs p-2.5 border border-black/20 bg-transparent outline-none w-full"
-                                                        />
-                                                    </div>
-
-                                                    <textarea
-                                                        rows={2}
-                                                        placeholder="Spatial project context (e.g. Zurich Residence atrium, Kyoto tearoom alcove)..."
-                                                        className="w-full font-mono text-xs p-2.5 border border-black/20 bg-transparent outline-none"
-                                                    ></textarea>
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setInquirySubmitted(true);
-                                                            showToast(`Commission dossier dispatched directly to ${currentArtist.name} studio.`);
-                                                        }}
-                                                        style={{ backgroundColor: accentColor }}
-                                                        className="w-full sm:w-auto px-6 py-2.5 text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer shadow-md hover:opacity-90"
-                                                    >
-                                                        Transmit Commission Request →
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 11. Monograph Colophon & Blockchain/DNS Verification Footer */}
-                                        <div className={`pt-6 border-t ${theme.border} space-y-2 font-mono text-xs opacity-75`}>
-                                            <div className={`flex ${isMobileViewport ? 'flex-col gap-2' : 'flex-row items-center justify-between gap-3'}`}>
-                                                <div className="space-y-0.5">
-                                                    <span className="font-bold text-xs">{currentArtist.name} Atelier · Monograph Registry</span>
-                                                    <p className="text-[10px] opacity-75">Sovereign Domain: atelier.art/@{currentArtist.id} · DNS-SEC</p>
-                                                </div>
-                                                <div className="text-[10px] space-y-0.5 sm:text-right">
-                                                    <span>Smart Contract: 0x8F94...B492</span>
-                                                    <span className="block opacity-60">Studio Batch #88 · 2026</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                {/* Mobile Bottom Home Bar Indicator */}
-                                {isMobileViewport && (
-                                    <div className="bg-[#181715] py-2 flex justify-center shrink-0">
-                                        <div className="w-28 h-1 bg-white/40 rounded-full"></div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-            </div>
-
-            {/* CoA Seal Modal */}
-            {coaModalOpen && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-[#FAF8F5] text-[#141413] border border-[#D5D0C7] max-w-lg w-full p-5 sm:p-7 space-y-5 shadow-2xl relative">
+            {isTabletViewport && (
+              <div className="h-9 bg-[#FAF8F5] border-b border-[#E7E4DF] px-4 flex items-center justify-between select-none shrink-0 z-20">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="h-3 w-px bg-[#E7E4DF] mx-1"></span>
+                  <span className="material-symbols-outlined text-[13px] text-emerald-700">lock</span>
+                  <span className="font-mono text-[10px] text-[#141413]">
+                    atelier.art/@{customHandle} · iPad Edition
+                  </span>
+                </div>
+                <span className="font-mono text-[9px] bg-[#141413] text-white px-2 py-0.5 rounded-xs uppercase tracking-wider font-semibold">
+                  768px Tablet
+                </span>
+              </div>
+            )}
+
+            {!isMobileViewport && !isTabletViewport && (
+              <div className="h-10 bg-[#FAF8F5] border-b border-[#E7E4DF] px-4 flex items-center justify-between select-none shrink-0 z-20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E7E4DF]"></span>
+                  <span className="h-3.5 w-px bg-[#E7E4DF] mx-1"></span>
+                  <span className="material-symbols-outlined text-[14px] text-emerald-700 shrink-0">lock</span>
+                  <span className="font-mono text-[11px] text-[#141413] font-medium truncate">
+                    atelier.art/@{customHandle}?view={archetype}&palette={canvasColor}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-semibold">
+                    Atelier Escrow Verified
+                  </span>
+                  <span className="font-mono text-[9px] bg-[#141413] text-white px-2 py-0.5 uppercase tracking-wider font-semibold">
+                    1440px Desktop
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* LIVE PORTFOLIO CONTENT (Simulated website with real styling) */}
+            <div className={`overflow-visible transition-colors duration-300 ${theme.bg} ${theme.text}`}>
+              <div className={`space-y-12 ${isMobileViewport ? 'p-4 sm:p-5' : isTabletViewport ? 'p-6 sm:p-8' : 'p-8 sm:p-14'}`}>
+                
+                {/* 1. Header Navigation & Hero */}
+                {toggles.showHeroSection && (
+                  <>
+                    <header className={`border-b ${theme.border} pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4`}>
+                      <div className="space-y-1">
+                        {toggles.devanagariScript && (
+                          <span className="font-serif text-xs text-[#C25E3E] block">
+                            {customHindiTitle}
+                          </span>
+                        )}
+                        <h1 className={`font-bold tracking-tight ${getHeaderFontClass()} ${isMobileViewport ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}>
+                          {customStudioName}
+                        </h1>
+                        <p className={`font-sans text-xs ${theme.mutedText}`}>
+                          {customArtistName} · {toggles.maskExactAddress ? customLocation : `${customLocation} (Studio Direct)`}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {toggles.craftMasterBadge && (
+                          <span className="font-mono text-[10px] text-amber-900 bg-amber-50 px-2 py-0.5 border border-amber-300">
+                            ★ {guildTag.split('·')[0]}
+                          </span>
+                        )}
+                        {toggles.commissionStatus && bespokeAccepting && (
+                          <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">
+                            ● Open for Commissions
+                          </span>
+                        )}
+                        {toggles.escrowBadge && (
+                          <span className="font-mono text-[10px] text-[#C25E3E] bg-[#FAF8F5] px-2 py-0.5 border border-[#E7E4DF]">
+                            50% Escrow Protected
+                          </span>
+                        )}
+                      </div>
+                    </header>
+
+                    <section className="space-y-3 max-w-3xl">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-medium">
+                          Studio Practice · {customDiscipline}
+                        </span>
+                      </div>
+                      <h2 className={`text-xl sm:text-2xl font-serif leading-snug`}>
+                        {customHeadline}
+                      </h2>
+                      <p className={`font-sans text-xs sm:text-sm leading-relaxed ${theme.mutedText}`}>
+                        {customSubheadline}
+                      </p>
+
+                      <div className="pt-2 flex items-center gap-3">
                         <button
-                            onClick={() => setCoaModalOpen(false)}
-                            className="absolute top-4 right-4 text-neutral-500 hover:text-black cursor-pointer"
+                          onClick={() => setActiveInquiryArtwork(masterworkTitle)}
+                          style={{ backgroundColor: accentColor }}
+                          className="px-4 py-2 text-white font-mono text-xs uppercase tracking-wider shadow-xs font-semibold cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-lg">close</span>
+                          {heroCtaLabel}
                         </button>
+                        {bespokeAccepting && (
+                          <button
+                            onClick={() => setIsBespokeModalOpen(true)}
+                            className={`px-4 py-2 border ${theme.border} font-mono text-xs uppercase tracking-wider hover:bg-black/5 cursor-pointer`}
+                          >
+                            Request Bespoke Project
+                          </button>
+                        )}
+                      </div>
+                    </section>
+                  </>
+                )}
 
-                        <div className="border-b border-[#E7E4DF] pb-3 flex items-center justify-between">
+                {/* 2. Hero Masterwork Showcase / Featured Work */}
+                {toggles.showFeaturedWorkSection && (
+                  <section className={`${getCardElevationClass()} ${theme.cardBorder} ${theme.cardBg} space-y-6 shadow-sm`}>
+                    <div className="flex flex-col sm:flex-row sm:items-baseline justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Featured Masterwork</span>
+                        <h3 className={`font-serif text-2xl font-bold ${getHeaderFontClass()}`}>{masterworkTitle}</h3>
+                        <p className={`font-sans text-xs ${theme.mutedText}`}>{masterworkSpecs}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        {pricingMode === 'transparent' ? (
+                          <span className="font-serif text-xl font-bold text-[#141413]">
+                            ₹{masterworkPrice.toLocaleString('en-IN')}
+                          </span>
+                        ) : pricingMode === 'range' ? (
+                          <span className="font-serif text-base font-bold text-[#141413]">
+                            ₹{Math.round(masterworkPrice * 0.9).toLocaleString('en-IN')} — ₹{Math.round(masterworkPrice * 1.15).toLocaleString('en-IN')}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-xs uppercase px-2 py-1 bg-[#FAF8F5] border border-[#E7E4DF] text-[#716E68]">
+                            Price on Inquiry
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                      <div className="lg:col-span-8 bg-[#FAF8F5] p-2 border border-[#E7E4DF] overflow-hidden">
+                        <div 
+                          className={`${getAspectClass()} bg-[#efeeeb] overflow-hidden relative cursor-pointer`}
+                          onClick={() => setZoomedImage({ url: currentMasterworkImg(), title: masterworkTitle, specs: masterworkSpecs })}
+                        >
+                          <img
+                            src={currentMasterworkImg()}
+                            alt={masterworkTitle}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            referrerPolicy="no-referrer"
+                          />
+                          {toggles.watermarkProtection && (
+                            <div className="absolute top-2 left-2 font-mono text-[9px] uppercase tracking-widest text-white/70 bg-black/40 px-2 py-0.5 backdrop-blur-xs">
+                              © Atelier Sovereign Archive
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2 bg-black/80 text-white font-mono text-[9px] px-2 py-1 flex items-center gap-1 uppercase">
+                            <span className="material-symbols-outlined text-[12px]">zoom_in</span>
+                            <span>Click to Inspect High-Res</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2 pt-2">
+                          {[
+                            { id: 'front', label: 'Front View' },
+                            { id: 'texture', label: 'Craft Texture' },
+                            { id: 'profile', label: 'Side Scale' },
+                            { id: 'spatial', label: 'In Architecture' },
+                          ].map(angle => (
+                            <button
+                              key={angle.id}
+                              onClick={() => setMasterworkAngle(angle.id as any)}
+                              className={`py-1 text-[10px] font-mono uppercase border transition-colors cursor-pointer ${
+                                masterworkAngle === angle.id
+                                  ? 'bg-[#141413] text-white border-black font-semibold'
+                                  : 'bg-white text-[#716E68] border-[#E7E4DF] hover:border-black'
+                              }`}
+                            >
+                              {angle.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-4 space-y-4">
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
+                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Dimensions</span>
+                            <span className="font-mono text-[#141413]">{masterworkDims}</span>
+                          </div>
+                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
+                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Weight</span>
+                            <span className="font-mono text-[#141413]">{masterworkWeight}</span>
+                          </div>
+                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
+                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Craft Cycle</span>
+                            <span className="font-sans text-[#141413]">{masterworkFiring}</span>
+                          </div>
+                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
+                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Provenance</span>
+                            <span className="font-sans text-[#141413] text-right">{masterworkProvenance}</span>
+                          </div>
+                          {toggles.insuredTransitBadge && (
+                            <div className="flex items-center gap-1.5 text-emerald-800 text-[10px] font-mono pt-1">
+                              <span className="material-symbols-outlined text-[13px]">local_shipping</span>
+                              <span>Insured All-India Transit via Blue Dart</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                          {toggles.inAppInquiryShield && (
+                            <button
+                              onClick={() => setActiveInquiryArtwork(masterworkTitle)}
+                              style={{ backgroundColor: accentColor }}
+                              className="w-full text-white py-2.5 px-4 font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs font-semibold"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">chat</span>
+                              <span>Inquire via Atelier (Phone Masked)</span>
+                            </button>
+                          )}
+
+                          {toggles.coaSeal && (
+                            <button
+                              onClick={() => setCoaModalArtwork({ ...baseArtist.masterwork, title: masterworkTitle, medium: masterworkMedium })}
+                              className="w-full bg-[#FAF8F5] hover:bg-white text-[#141413] border border-[#E7E4DF] py-2 px-3 font-mono text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-[15px] text-[#C25E3E]">verified</span>
+                              <span>Digital COA Certificate</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* 3. Artworks Catalog & Collections */}
+                {toggles.showCollectionsSection && (
+                  <section className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-medium">{gallerySubtitle}</span>
+                        <h3 className="font-serif text-2xl font-bold">{galleryTitle}</h3>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-xs text-[#716E68]">{artworksList.length} Pieces Documented</span>
+                        <button
+                          onClick={() => setIsAddArtworkOpen(true)}
+                          className="px-2.5 py-1 bg-white border border-[#E7E4DF] text-[#141413] text-[10px] font-mono uppercase hover:bg-black/5 cursor-pointer"
+                        >
+                          + Add Piece
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={`grid ${galleryLayout === '2-col' ? 'grid-cols-1 sm:grid-cols-2' : galleryLayout === 'masonry' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-6`}>
+                      {artworksList.map(item => (
+                        <div key={item.id} className={`${getCardElevationClass()} ${theme.cardBorder} ${theme.cardBg} space-y-3 flex flex-col justify-between shadow-2xs`}>
+                          <div className="space-y-2">
+                            <div 
+                              className={`${getAspectClass()} bg-[#efeeeb] overflow-hidden cursor-pointer relative group`}
+                              onClick={() => setZoomedImage({ url: item.img, title: item.title, specs: item.medium })}
+                            >
+                              <img
+                                src={item.img}
+                                alt={item.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute top-2 right-2 bg-black/80 text-white font-mono text-[9px] px-1.5 py-0.5">
+                                {item.category}
+                              </div>
+                            </div>
+
                             <div>
-                                <span className="font-mono text-[10px] uppercase tracking-widest text-[#716E68]">Certificate of Authenticity</span>
-                                <h3 className="font-serif text-lg sm:text-xl font-bold mt-0.5">Physical Tamper-Proof NFC Seal</h3>
+                              <div className="flex items-start justify-between gap-1">
+                                <h4 className="font-serif text-base font-semibold text-[#141413]">{item.title}</h4>
+                                {pricingMode === 'transparent' ? (
+                                  <span className="font-serif text-sm font-bold text-[#141413] shrink-0">
+                                    ₹{item.price.toLocaleString('en-IN')}
+                                  </span>
+                                ) : pricingMode === 'range' ? (
+                                  <span className="font-serif text-xs font-bold text-[#141413] shrink-0">
+                                    ₹{Math.round(item.price * 0.9).toLocaleString('en-IN')}+
+                                  </span>
+                                ) : (
+                                  <span className="font-mono text-[10px] text-[#716E68] shrink-0">On Inquiry</span>
+                                )}
+                              </div>
+                              <p className="font-sans text-xs text-[#56423d] pt-0.5 leading-relaxed">{item.medium}</p>
+                              <p className="font-mono text-[10px] text-[#716E68] pt-1">{item.dims} · {item.year}</p>
                             </div>
-                            <span className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold font-serif text-sm">
-                                EV
+                          </div>
+
+                          <div className="pt-2 border-t border-[#E7E4DF]/60 space-y-2">
+                            {toggles.limitedEditionsStock && item.editionInfo && (
+                              <div className="font-mono text-[10px] text-[#C25E3E] font-medium">
+                                {item.editionInfo}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setActiveInquiryArtwork(item.title)}
+                                className="flex-1 py-1.5 px-2 bg-[#141413] hover:bg-[#C25E3E] text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                              >
+                                Inquire
+                              </button>
+                              {toggles.coaSeal && (
+                                <button
+                                  onClick={() => setCoaModalArtwork(item)}
+                                  className="p-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-[#141413] cursor-pointer"
+                                  title="Certificate of Authenticity"
+                                >
+                                  <span className="material-symbols-outlined text-[16px] block text-[#C25E3E]">verified</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* 4. About & Studio Heritage */}
+                {toggles.showAboutSection && (
+                  <section className={`border ${theme.cardBorder} ${theme.subtleBg} p-6 sm:p-8 space-y-4`}>
+                    <div className="border-b pb-2" style={{ borderColor: 'inherit' }}>
+                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-medium">Materiality & Provenance</span>
+                      <h3 className="font-serif text-xl font-bold">{processTitle}</h3>
+                      <p className="font-sans text-xs text-[#716E68]">{processSubtitle}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec1Label}</span>
+                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec1Val}</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec2Label}</span>
+                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec2Val}</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec3Label}</span>
+                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec3Val}</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec4Label}</span>
+                        <span className="font-sans text-xs font-semibold text-emerald-800">{spec4Val}</span>
+                      </div>
+                    </div>
+
+                    <p className="font-sans text-xs leading-relaxed text-[#56423d] pt-2 border-t" style={{ borderColor: 'inherit' }}>
+                      {processSummary}
+                    </p>
+                  </section>
+                )}
+
+                {/* 5. Commissions Section */}
+                {toggles.showCommissionsSection && bespokeAccepting && (
+                  <section className={`border ${theme.cardBorder} ${theme.cardBg} p-6 sm:p-8 space-y-4 shadow-xs`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-semibold">Architectural & Private Commissions</span>
+                        <h3 className="font-serif text-xl font-bold">{bespokeTitle}</h3>
+                      </div>
+                      <span className="font-mono text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1 border border-emerald-300">
+                        ● Accepting Bespoke Projects
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
+                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Lead Time</span>
+                        <span className="font-semibold text-[#141413] mt-0.5 block">{bespokeLeadTime}</span>
+                      </div>
+                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Minimum Budget</span>
+                        <span className="font-semibold text-[#141413] mt-0.5 block">{bespokeMinBudget}</span>
+                      </div>
+                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Escrow Protection</span>
+                        <span className="font-semibold text-emerald-800 mt-0.5 block">50% Advance in Escrow</span>
+                      </div>
+                    </div>
+
+                    <p className="font-sans text-xs text-[#56423d] leading-relaxed">
+                      {bespokeTerms}
+                    </p>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setIsBespokeModalOpen(true)}
+                        style={{ backgroundColor: accentColor }}
+                        className="px-5 py-2.5 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xs font-semibold"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">draw</span>
+                        <span>{bespokeCtaLabel}</span>
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                {/* 6. Contact & Footer */}
+                {toggles.showContactSection && (
+                  <footer className={`border-t ${theme.border} pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${theme.mutedText}`}>
+                    <div>
+                      <span>© {customStudioName} · Atelier Verified Independent Studio</span>
+                      {toggles.studioVisitPolicy && (
+                        <span className="block text-[11px] pt-0.5 text-[#56423d]">
+                          {visitPolicyText}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5">
+                        Phone Masked · In-App Inquiry Hub
+                      </span>
+                    </div>
+                  </footer>
+                )}
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: 4 Extended Tabs (Templates, Content/Studio, Style, Security) - Window Height Restriction */}
+        {(!isPreviewExpanded) && (
+          <div className={`lg:col-span-5 xl:col-span-4 bg-white border border-[#E7E4DF] shadow-md rounded-md my-4 mr-4 flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden ${hostSmallScreenTab !== 'controls' ? 'hidden lg:flex' : 'flex'}`}>
+            
+            {/* VERTICAL COLLAPSIBLE SECTIONS */}
+            <div className="flex-1 overflow-y-auto border-t border-[#E7E4DF]">
+              
+              {/* SECTION 1: TEMPLATES */}
+              <div className="border-b border-[#E7E4DF]">
+                <button 
+                  onClick={() => setExpandedSections(prev => ({...prev, templates: !prev.templates}))}
+                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    <span>Templates (10)</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm">{expandedSections.templates ? 'expand_less' : 'expand_more'}</span>
+                </button>
+                {expandedSections.templates && (
+                  <div className="pb-4 px-4">
+                    <div className="space-y-4">
+                      <div className="border-b border-[#E7E4DF] pb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold">
+                            Master Craft Presets
+                          </span>
+                          <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300 font-medium">
+                            10 Available
+                          </span>
+                        </div>
+                        <h3 className="font-serif text-lg text-[#141413] mt-0.5">Select a Handcrafted Theme</h3>
+                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                          Curated Indian craft aesthetics with harmonious mineral grounds, typography pairings, and layout archetypes.
+                        </p>
+                      </div>
+
+                      {/* Discipline Category Filter */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                        {['All', 'Ceramics', 'Textiles', 'Metal', 'Wood', 'Heritage Arts', 'Painting'].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setTemplateFilter(cat)}
+                            className={`px-2.5 py-1 font-mono text-[10px] uppercase whitespace-nowrap border transition-colors cursor-pointer ${
+                              templateFilter === cat ? 'bg-[#141413] text-white border-[#141413] font-semibold' : 'bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF] hover:border-black'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* 10 Template Cards (Compact Grid) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {filteredTemplates.map(preset => (
+                          <div
+                            key={preset.id}
+                            onClick={() => applyTemplate(preset)}
+                            className={`p-3 border transition-all cursor-pointer flex flex-col justify-between ${
+                              activeTemplateId === preset.id 
+                                ? 'border-[#141413] bg-[#FAF8F5] ring-1 ring-black shadow-xs' 
+                                : 'border-[#E7E4DF] bg-white hover:border-[#141413]/50'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-1">
+                                <span className="font-serif text-xs font-bold text-[#141413] leading-tight">{preset.name}</span>
+                                {activeTemplateId === preset.id && (
+                                  <span className="font-mono text-[9px] bg-[#141413] text-white px-1.5 py-0.2 uppercase tracking-wider font-semibold shrink-0">Active</span>
+                                )}
+                              </div>
+                              <span className="font-mono text-[9px] text-[#C25E3E] uppercase block mt-0.5">{preset.craftSubhead}</span>
+                              <p className="font-sans text-[11px] text-[#56423d] mt-1 line-clamp-2 leading-snug">{preset.description}</p>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#E7E4DF]/60">
+                              <div className="flex items-center gap-1">
+                                {preset.swatches.map((color, idx) => (
+                                  <span key={idx} className="w-3 h-3 rounded-full border border-black/20" style={{ backgroundColor: color }} />
+                                ))}
+                              </div>
+                              <span className="font-mono text-[9px] text-[#716E68] uppercase">
+                                {preset.typography}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: STUDIO (CONTENT) */}
+              <div className="border-b border-[#E7E4DF]">
+                <button 
+                  onClick={() => setExpandedSections(prev => ({...prev, studio: !prev.studio}))}
+                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">dashboard_customize</span>
+                    <span>Content</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm">{expandedSections.studio ? "expand_less" : "expand_more"}</span>
+                </button>
+                {expandedSections.studio && (
+                  <div className="pb-4 px-4">
+                    <div className="space-y-5">
+                      <div className="border-b border-[#E7E4DF] pb-3">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Brand & Content</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Section-Wise Content Access</h3>
+                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                          Tailor copy, telemetry, masterwork angles, and catalog items for each section of your portfolio.
+                        </p>
+                      </div>
+
+                      {/* Discipline Quick Preset Switcher */}
+                      <div className="flex items-center justify-between bg-[#FAF8F5] p-2 border border-[#E7E4DF] text-xs">
+                        <span className="font-mono text-[10px] text-[#716E68] uppercase font-semibold">Artisan Lineage Preset:</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                          <button onClick={() => handleSelectArtistPreset("aarav")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "aarav" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Potter</button>
+                          <button onClick={() => handleSelectArtistPreset("ananya")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "ananya" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Weaver</button>
+                          <button onClick={() => handleSelectArtistPreset("devendra")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "devendra" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Sculptor</button>
+                        </div>
+                      </div>
+
+                      {/* Section-Wise Tabs Bar */}
+                      <div className="grid grid-cols-4 gap-1 font-mono text-[9px] uppercase text-center border-b border-[#E7E4DF] pb-3">
+                        <button onClick={() => setStudioEditSection("hero")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "hero" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Hero</button>
+                        <button onClick={() => setStudioEditSection("masterwork")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "masterwork" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Masterwork</button>
+                        <button onClick={() => setStudioEditSection("gallery")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "gallery" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Catalog ({artworksList.length})</button>
+                        <button onClick={() => setStudioEditSection("process")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "process" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Process</button>
+                        <button onClick={() => setStudioEditSection("bespoke")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "bespoke" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Bespoke</button>
+                        <button onClick={() => setStudioEditSection("about")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "about" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Heritage</button>
+                        <button onClick={() => setStudioEditSection("policies")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "policies" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Policies</button>
+                      </div>
+
+                      {/* 1. HERO SECTION CONTROLS */}
+                      {studioEditSection === "hero" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Hero Section Customisation</span>
+                          
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Brand Name</label>
+                            <input
+                              type="text"
+                              value={customStudioName}
+                              onChange={e => setCustomStudioName(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artist / Founder Name</label>
+                            <input
+                              type="text"
+                              value={customArtistName}
+                              onChange={e => setCustomArtistName(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Public Handle</label>
+                            <div className="flex items-center">
+                              <span className="px-2.5 py-2 bg-[#FAF8F5] border border-r-0 border-[#E7E4DF] text-xs font-mono text-[#716E68]">
+                                atelier.art/@
+                              </span>
+                              <input
+                                type="text"
+                                value={customHandle}
+                                onChange={e => setCustomHandle(e.target.value)}
+                                className="flex-1 px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413] focus:outline-none focus:border-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Heritage Hindi Devanagari Title</label>
+                            <input
+                              type="text"
+                              value={customHindiTitle}
+                              onChange={e => setCustomHindiTitle(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Craft Discipline & Medium</label>
+                            <input
+                              type="text"
+                              value={customDiscipline}
+                              onChange={e => setCustomDiscipline(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Geographic Cluster</label>
+                            <input
+                              type="text"
+                              value={customLocation}
+                              onChange={e => setCustomLocation(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Craft Statement / Headline</label>
+                            <textarea
+                              rows={2}
+                              value={customHeadline}
+                              onChange={e => setCustomHeadline(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Practice Philosophy / Subheadline</label>
+                            <textarea
+                              rows={3}
+                              value={customSubheadline}
+                              onChange={e => setCustomSubheadline(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero CTA Label</label>
+                              <input
+                                type="text"
+                                value={heroCtaLabel}
+                                onChange={e => setHeroCtaLabel(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Layout Variant</label>
+                              <select
+                                value={heroLayoutVariant}
+                                onChange={e => setHeroLayoutVariant(e.target.value as any)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                              >
+                                <option value="monograph">Centered Monograph</option>
+                                <option value="split">Split Studio Photo</option>
+                                <option value="architectural">Architectural Headline</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. MASTERWORK SECTION CONTROLS */}
+                      {studioEditSection === "masterwork" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Featured Masterwork Centerpiece</span>
+                          
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Masterwork Artwork Title</label>
+                            <input
+                              type="text"
+                              value={masterworkTitle}
+                              onChange={e => setMasterworkTitle(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hindi Calligraphy Name</label>
+                              <input
+                                type="text"
+                                value={masterworkHindiName}
+                                onChange={e => setMasterworkHindiName(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Price (₹ INR)</label>
+                              <input
+                                type="number"
+                                value={masterworkPrice}
+                                onChange={e => setMasterworkPrice(parseInt(e.target.value) || 0)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Material & Reduction Specs</label>
+                            <input
+                              type="text"
+                              value={masterworkSpecs}
+                              onChange={e => setMasterworkSpecs(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Dimensions</label>
+                              <input
+                                type="text"
+                                value={masterworkDims}
+                                onChange={e => setMasterworkDims(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Net Weight</label>
+                              <input
+                                type="text"
+                                value={masterworkWeight}
+                                onChange={e => setMasterworkWeight(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Firing Cycle / Loom Time</label>
+                              <input
+                                type="text"
+                                value={masterworkFiring}
+                                onChange={e => setMasterworkFiring(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Provenance / Exhibition Record</label>
+                              <input
+                                type="text"
+                                value={masterworkProvenance}
+                                onChange={e => setMasterworkProvenance(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 4 Image URLs */}
+                          <div className="border-t border-[#E7E4DF] pt-3 space-y-2">
+                            <label className="block font-mono text-[10px] uppercase text-[#141413] font-bold">4-Angle Masterwork Imagery</label>
+                            <div>
+                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 1: Front Elevation URL</span>
+                              <input
+                                type="text"
+                                value={masterworkImgFront}
+                                onChange={e => setMasterworkImgFront(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 2: Micro-Texture URL</span>
+                              <input
+                                type="text"
+                                value={masterworkImgTexture}
+                                onChange={e => setMasterworkImgTexture(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 3: Silhouette Profile URL</span>
+                              <input
+                                type="text"
+                                value={masterworkImgProfile}
+                                onChange={e => setMasterworkImgProfile(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 4: Spatial Context Living Space URL</span>
+                              <input
+                                type="text"
+                                value={masterworkImgSpatial}
+                                onChange={e => setMasterworkImgSpatial(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. CATALOG & GALLERY SECTION CONTROLS */}
+                      {studioEditSection === "gallery" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold">Studio Catalog & Editions</span>
+                            <button
+                              onClick={() => setIsAddArtworkOpen(true)}
+                              className="px-2.5 py-1 bg-[#141413] text-white text-[10px] font-mono uppercase flex items-center gap-1 cursor-pointer hover:bg-[#C25E3E]"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">add</span>
+                              <span>Add Artwork</span>
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Title</label>
+                              <input
+                                type="text"
+                                value={galleryTitle}
+                                onChange={e => setGalleryTitle(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Subtitle</label>
+                              <input
+                                type="text"
+                                value={gallerySubtitle}
+                                onChange={e => setGallerySubtitle(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "3-col", label: "3 Columns" },
+                              { id: "2-col", label: "2 Columns" },
+                              { id: "masonry", label: "Masonry Flow" },
+                            ].map(l => (
+                              <button
+                                key={l.id}
+                                onClick={() => setGalleryLayout(l.id as any)}
+                                className={`py-1.5 text-center font-mono text-[10px] uppercase border cursor-pointer ${
+                                  galleryLayout === l.id ? "bg-[#141413] text-white border-black font-semibold" : "bg-white text-[#716E68] border-[#E7E4DF]"
+                                }`}
+                              >
+                                {l.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Items List with Edit/Delete */}
+                          <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
+                            <span className="font-mono text-[10px] uppercase text-[#716E68] font-semibold block">
+                              Documented Artworks ({artworksList.length})
                             </span>
+                            {artworksList.map(item => (
+                              <div key={item.id} className="p-2 border border-[#E7E4DF] bg-[#FAF8F5] flex items-center justify-between gap-2 text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <img src={item.img} alt={item.title} className="w-8 h-8 object-cover border border-black/10 shrink-0" />
+                                  <div className="min-w-0">
+                                    <div className="font-serif font-bold text-[#141413] truncate">{item.title}</div>
+                                    <div className="font-mono text-[10px] text-[#716E68]">₹{item.price.toLocaleString("en-IN")} · {item.category}</div>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => handleRemoveArtwork(item.id)}
+                                  className="text-red-700 hover:text-red-900 p-1 cursor-pointer shrink-0"
+                                  title="Remove Artwork"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
+                      )}
 
-                        <div className="space-y-2.5 font-mono text-xs">
-                            <div className="flex justify-between border-b border-[#E7E4DF] pb-2">
-                                <span className="text-[#716E68]">Certificate Node ID:</span>
-                                <span className="font-semibold">#COA-9982-ZUR-2024</span>
+                      {/* 4. PROCESS & TELEMETRY CONTROLS */}
+                      {studioEditSection === "process" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Kiln, Loom & Craft Telemetry</span>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Section Title</label>
+                              <input
+                                type="text"
+                                value={processTitle}
+                                onChange={e => setProcessTitle(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                              />
                             </div>
-                            <div className="flex justify-between border-b border-[#E7E4DF] pb-2">
-                                <span className="text-[#716E68]">Sha-256 Ledger Hash:</span>
-                                <span className="font-semibold text-[10px] truncate max-w-[200px] sm:max-w-[240px]">0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1f...</span>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Subtitle</label>
+                              <input
+                                type="text"
+                                value={processSubtitle}
+                                onChange={e => setProcessSubtitle(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
                             </div>
-                            <div className="flex justify-between border-b border-[#E7E4DF] pb-2">
-                                <span className="text-[#716E68]">Physical Media Seal:</span>
-                                <span className="font-semibold">NXP NTAG213 Embedded Chip</span>
+                          </div>
+
+                          {/* 4 Telemetry Spec Cards */}
+                          <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
+                            <span className="font-mono text-[10px] uppercase text-[#141413] font-bold block">4 Craft Telemetry Metrics</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 1 Label & Value</span>
+                                <input
+                                  type="text"
+                                  value={spec1Label}
+                                  onChange={e => setSpec1Label(e.target.value)}
+                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={spec1Val}
+                                  onChange={e => setSpec1Val(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                                />
+                              </div>
+                              <div>
+                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 2 Label & Value</span>
+                                <input
+                                  type="text"
+                                  value={spec2Label}
+                                  onChange={e => setSpec2Label(e.target.value)}
+                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={spec2Val}
+                                  onChange={e => setSpec2Val(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                                />
+                              </div>
+                              <div>
+                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 3 Label & Value</span>
+                                <input
+                                  type="text"
+                                  value={spec3Label}
+                                  onChange={e => setSpec3Label(e.target.value)}
+                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={spec3Val}
+                                  onChange={e => setSpec3Val(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                                />
+                              </div>
+                              <div>
+                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 4 Label & Value</span>
+                                <input
+                                  type="text"
+                                  value={spec4Label}
+                                  onChange={e => setSpec4Label(e.target.value)}
+                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={spec4Val}
+                                  onChange={e => setSpec4Val(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                                />
+                              </div>
                             </div>
-                            <div className="flex justify-between border-b border-[#E7E4DF] pb-2">
-                                <span className="text-[#716E68]">Atelier Signatory:</span>
-                                <span className="font-semibold">{currentArtist.name}</span>
-                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Story Narrative</label>
+                            <textarea
+                              rows={3}
+                              value={processSummary}
+                              onChange={e => setProcessSummary(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Guild Certification Tag</label>
+                            <input
+                              type="text"
+                              value={guildTag}
+                              onChange={e => setGuildTag(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                            />
+                          </div>
                         </div>
+                      )}
 
-                        <p className="font-serif italic text-xs text-[#716E68] text-center">
-                            This certificate certifies original fabrication under direct studio supervision.
+                      {/* 5. BESPOKE COMMISSIONS CONTROLS */}
+                      {studioEditSection === "bespoke" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Bespoke Architectural Commissions</span>
+                          
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Commission Section Heading</label>
+                            <input
+                              type="text"
+                              value={bespokeTitle}
+                              onChange={e => setBespokeTitle(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Lead Time</label>
+                              <input
+                                type="text"
+                                value={bespokeLeadTime}
+                                onChange={e => setBespokeLeadTime(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Minimum Budget</label>
+                              <input
+                                type="text"
+                                value={bespokeMinBudget}
+                                onChange={e => setBespokeMinBudget(e.target.value)}
+                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Milestone Escrow Terms Explanation</label>
+                            <textarea
+                              rows={2}
+                              value={bespokeTerms}
+                              onChange={e => setBespokeTerms(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-3 bg-[#FAF8F5] border border-[#E7E4DF]">
+                            <div>
+                              <div className="font-mono text-xs font-bold text-[#141413]">Accepting Bespoke Commissions</div>
+                              <div className="font-sans text-[11px] text-[#716E68]">Displays \"Open for Commissions\" badge</div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={bespokeAccepting}
+                              onChange={e => setBespokeAccepting(e.target.checked)}
+                              className="w-4 h-4 cursor-pointer accent-[#141413]"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 6. ABOUT & HERITAGE CONTROLS */}
+                      {studioEditSection === "about" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">About & Studio Heritage</span>
+                          
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artisan Lineage & Heritage Note</label>
+                            <textarea
+                              rows={3}
+                              value={craftHeritageNote}
+                              onChange={e => setCraftHeritageNote(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Visiting Policy (Scheduled via Atelier)</label>
+                            <input
+                              type="text"
+                              value={visitPolicyText}
+                              onChange={e => setVisitPolicyText(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Press, Biennales & Museum Mentions</label>
+                            <input
+                              type="text"
+                              value={pressMention}
+                              onChange={e => setPressMention(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 7. POLICIES & GUARANTEES */}
+                      {studioEditSection === "policies" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Logistics & Buyer Guarantees</span>
+                          
+                          <div>
+                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Domestic Transit Insurance & Courier Policy</label>
+                            <textarea
+                              rows={2}
+                              value={shippingPolicyText}
+                              onChange={e => setShippingPolicyText(e.target.value)}
+                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                            />
+                          </div>
+
+                          <div className="p-3 bg-[#FAF8F5] border border-[#E7E4DF] space-y-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-xs font-bold text-[#141413]">Insured Fine Art Logistics</span>
+                              <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">Active</span>
+                            </div>
+                            <p className="font-sans text-[11px] text-[#56423d]">
+                              Integrated Blue Dart Apex & Delhivery door-to-door insurance with transit damage protection.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: STYLE */}
+              <div className="border-b border-[#E7E4DF]">
+                <button 
+                  onClick={() => setExpandedSections(prev => ({...prev, styles: !prev.styles}))}
+                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">palette</span>
+                    <span>Style</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm">{expandedSections.styles ? "expand_less" : "expand_more"}</span>
+                </button>
+                {expandedSections.styles && (
+                  <div className="pb-4 px-4">
+                    <div className="space-y-6">
+                      <div>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">01 / Mineral Grounds</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Canvas Ground Tones (10 Mineral Palettes)</h3>
+                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                          Authentic Indian mineral tones reflecting terracotta, handmade wasli, and raw silk.
                         </p>
 
-                        <button
-                            onClick={() => {
-                                setCoaModalOpen(false);
-                                showToast('Cryptographic certificate downloaded (PDF + JSON)');
-                            }}
-                            style={{ backgroundColor: accentColor }}
-                            className="w-full py-2.5 text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer hover:opacity-90 transition-opacity"
-                        >
-                            Export Signed Dossier (PDF)
-                        </button>
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          {[
+                            { id: "bone", label: "Kora Kagaz", bg: "#FFFFFF", desc: "Museum Bone" },
+                            { id: "linen", label: "Khadi Linen", bg: "#F6F3ED", desc: "Raw Sand" },
+                            { id: "multani", label: "Multani Mitti", bg: "#EDE6DA", desc: "Fuller’s Earth" },
+                            { id: "sandalwood", label: "Chandan Wasli", bg: "#F7EFE1", desc: "Warm Ivory" },
+                            { id: "terracotta", label: "Geru Clay", bg: "#221A18", desc: "Baked Umber" },
+                            { id: "sandstone", label: "Marwar Sand", bg: "#F2E8DC", desc: "Dune Ochre" },
+                            { id: "forest", label: "Pichwai Neem", bg: "#16241B", desc: "Deep Forest" },
+                            { id: "teak", label: "Haveli Teak", bg: "#2A1F1B", desc: "Aged Sheesham" },
+                            { id: "indigo", label: "Kashi Neel", bg: "#121A24", desc: "Deep Indigo" },
+                            { id: "basalt", label: "Kajal Basalt", bg: "#141413", desc: "Charcoal Night" },
+                          ].map(c => (
+                            <button
+                              key={c.id}
+                              onClick={() => {
+                                setCanvasColor(c.id as any);
+                                showToast(`Ground set to ${c.label}`);
+                              }}
+                              className={`p-2.5 border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                                canvasColor === c.id ? "border-[#141413] ring-1 ring-black bg-[#FAF8F5]" : "border-[#E7E4DF] bg-white hover:border-[#141413]/40"
+                              }`}
+                            >
+                              <span className="w-4 h-4 rounded-full border border-black/20 shrink-0 mt-0.5" style={{ backgroundColor: c.bg }}></span>
+                              <div>
+                                <div className="font-mono text-xs font-semibold text-[#141413]">{c.label}</div>
+                                <div className="font-sans text-[10px] text-[#716E68]">{c.desc}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Typography Pairings */}
+                      <div className="border-t border-[#E7E4DF] pt-4">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">02 / Typography</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Indian Fine Art Type Pairings (7 Styles)</h3>
+
+                        <div className="space-y-2 mt-3">
+                          {[
+                            { id: "cormorant", name: "Editorial Gallery (Cormorant)", sample: "Tectonic Monograph", desc: "Classical italic serif with poetic craft authority" },
+                            { id: "playfair", name: "Heritage Museum (Playfair)", sample: "Indian Heritage Arts", desc: "Bold display serif celebrating historical weights" },
+                            { id: "cinzel", name: "Architectural Stone (Cinzel)", sample: "TEMPLE MONUMENTAL", desc: "Carved stone serif inspired by ancient inscriptions" },
+                            { id: "syne", name: "Contemporary Avant-Garde (Syne)", sample: "MODERN ATELIER", desc: "Crisp architectural sans-serif for clean geometry" },
+                            { id: "space", name: "Craft & Spec Telemetry (Space)", sample: "1280°C VITRIFIED", desc: "Monospace studio spec sheet font" },
+                            { id: "baskerville", name: "Scholarly Classic (Baskerville)", sample: "Sovereign Archives", desc: "Time-honored fine printing tradition" },
+                            { id: "bodoni", name: "Haute Atelier Luxury (Bodoni)", sample: "ATELIER MONOGRAPH", desc: "High-contrast luxury headlines" },
+                          ].map(t => (
+                            <div
+                              key={t.id}
+                              onClick={() => {
+                                setTypography(t.id as any);
+                                showToast(`Typography set to ${t.name}`);
+                              }}
+                              className={`p-2.5 border transition-all cursor-pointer ${
+                                typography === t.id ? "border-[#141413] ring-1 ring-black bg-[#FAF8F5]" : "border-[#E7E4DF] bg-white hover:border-[#141413]/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono text-xs font-bold text-[#141413]">{t.name}</span>
+                                {typography === t.id && <span className="font-mono text-[10px] text-[#C25E3E] font-semibold">Active</span>}
+                              </div>
+                              <div className="text-sm text-[#141413] mt-1 font-serif">{t.sample}</div>
+                              <p className="font-sans text-[10px] text-[#716E68] mt-0.5">{t.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Image Aspect Ratio Options */}
+                      <div className="border-t border-[#E7E4DF] pt-4">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">03 / Aspect Ratio</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Artwork Image Framing (6 Formats)</h3>
+
+                        <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                          {[
+                            { id: "4:3", label: "4:3 Classical" },
+                            { id: "1:1", label: "1:1 Square" },
+                            { id: "16:10", label: "16:10 Cinema" },
+                            { id: "3:4", label: "3:4 Tapestry" },
+                            { id: "2:3", label: "2:3 Tall" },
+                            { id: "5:4", label: "5:4 Gallery" },
+                          ].map(ar => (
+                            <button
+                              key={ar.id}
+                              onClick={() => {
+                                setAspectRatio(ar.id as any);
+                                showToast(`Image frame: ${ar.label}`);
+                              }}
+                              className={`p-2 border transition-all cursor-pointer ${
+                                aspectRatio === ar.id ? "border-[#141413] bg-[#FAF8F5] ring-1 ring-black font-semibold" : "border-[#E7E4DF] bg-white"
+                              }`}
+                            >
+                              <span className="font-mono text-xs block">{ar.id}</span>
+                              <span className="font-sans text-[9px] text-[#716E68]">{ar.label.split(" ")[1]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Card Border & Matting Style */}
+                      <div className="border-t border-[#E7E4DF] pt-4">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">04 / Border & Elevation</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Matting & Framing Architecture</h3>
+
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                          {[
+                            { id: "hairline", label: "Hairline", desc: "1px clean edge" },
+                            { id: "matting", label: "Gallery Mat", desc: "Framed margin" },
+                            { id: "flush", label: "Borderless", desc: "Flush bleeding" },
+                            { id: "float", label: "Archival Float", desc: "Soft shadow" },
+                            { id: "rivets", label: "Brass Rivets", desc: "Corner studs" },
+                          ].map(b => (
+                            <button
+                              key={b.id}
+                              onClick={() => {
+                                setBorderStyle(b.id as any);
+                                showToast(`Border style: ${b.label}`);
+                              }}
+                              className={`p-2 border text-center transition-all cursor-pointer ${
+                                borderStyle === b.id ? "border-[#141413] bg-[#FAF8F5] ring-1 ring-black font-semibold" : "border-[#E7E4DF] bg-white"
+                              }`}
+                            >
+                              <span className="font-mono text-xs block">{b.label}</span>
+                              <span className="font-sans text-[10px] text-[#716E68]">{b.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Accent Color Palettes */}
+                      <div className="border-t border-[#E7E4DF] pt-4">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">05 / Accents</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Heritage Mineral Accents</h3>
+
+                        <div className="flex items-center gap-2.5 mt-3 flex-wrap">
+                          {[
+                            { color: "#C25E3E", label: "Terracotta Oxide" },
+                            { color: "#2B4C6F", label: "Kashi Indigo" },
+                            { color: "#C89D55", label: "Bell Metal Gold" },
+                            { color: "#3F5342", label: "Forest Neem Green" },
+                            { color: "#B8860B", label: "Kishangarh 24k Gold" },
+                            { color: "#D9531E", label: "Kutch Rogan Ochre" },
+                            { color: "#943826", label: "Bengal Madder Red" },
+                            { color: "#155278", label: "Jaipur Cobalt Blue" },
+                            { color: "#94A3B8", label: "Bidri Sterling Silver" },
+                            { color: "#33322E", label: "Bastar Charcoal" },
+                          ].map(swatch => (
+                            <button
+                              key={swatch.color}
+                              onClick={() => {
+                                setAccentColor(swatch.color);
+                                showToast(`Accent: ${swatch.label}`);
+                              }}
+                              style={{ backgroundColor: swatch.color }}
+                              className={`w-7 h-7 rounded-full cursor-pointer transition-transform ${
+                                accentColor === swatch.color ? "scale-125 ring-2 ring-black ring-offset-2" : "hover:scale-110"
+                              }`}
+                              title={swatch.label}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                </div>
-            )}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 4: SECURITY */}
+              <div className="border-b border-[#E7E4DF]">
+                <button 
+                  onClick={() => setExpandedSections(prev => ({...prev, security: !prev.security}))}
+                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">security</span>
+                    <span>Security</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm">{expandedSections.security ? "expand_less" : "expand_more"}</span>
+                </button>
+                {expandedSections.security && (
+                  <div className="pb-4 px-4">
+                    <div className="space-y-6">
+                      {/* Pricing Mode Selector */}
+                      <div className="bg-[#FAF8F5] p-3.5 border border-[#E7E4DF] space-y-2">
+                        <span className="font-mono text-xs uppercase text-[#141413] font-bold block">
+                          Price Transparency Display Mode
+                        </span>
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          {[
+                            { id: "transparent", label: "Exact ₹ INR", desc: "Direct amounts" },
+                            { id: "inquire", label: "On Inquiry", desc: "Hidden for VIP" },
+                            { id: "range", label: "Price Range", desc: "Estimated band" },
+                          ].map(pm => (
+                            <button
+                              key={pm.id}
+                              onClick={() => {
+                                setPricingMode(pm.id as any);
+                                showToast(`Pricing display: ${pm.label}`);
+                              }}
+                              className={`p-2 border text-center transition-all cursor-pointer ${
+                                pricingMode === pm.id ? "border-[#141413] bg-white ring-1 ring-black font-semibold" : "border-[#E7E4DF] bg-[#FAF8F5]"
+                              }`}
+                            >
+                              <span className="font-mono text-xs block">{pm.label}</span>
+                              <span className="font-sans text-[9px] text-[#716E68]">{pm.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* GROUP 1: SECTIONS (Matching Attached Image Style) */}
+                      <div className="space-y-2">
+                        <div className="font-serif text-sm font-bold uppercase tracking-wider text-[#141413] border-b border-[#E7E4DF] pb-2">
+                          SECTIONS
+                        </div>
+                        {[
+                          { key: "showHeroSection" as keyof FeatureToggles, label: "Hero" },
+                          { key: "showFeaturedWorkSection" as keyof FeatureToggles, label: "Featured Work" },
+                          { key: "showCollectionsSection" as keyof FeatureToggles, label: "Collections" },
+                          { key: "showAboutSection" as keyof FeatureToggles, label: "About" },
+                          { key: "showCommissionsSection" as keyof FeatureToggles, label: "Commissions" },
+                          { key: "showContactSection" as keyof FeatureToggles, label: "Contact" },
+                        ].map(sec => {
+                          const enabled = toggles[sec.key];
+                          return (
+                            <div
+                              key={sec.key}
+                              onClick={() => handleToggle(sec.key)}
+                              className="p-3 bg-[#FAF8F5] border-b border-[#E7E4DF] flex items-center justify-between gap-3 select-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                              <span className="font-serif text-sm font-medium text-[#141413]">{sec.label}</span>
+                              <div
+                                className="w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0"
+                                style={{ backgroundColor: enabled ? accentColor : "#E5E2DC" }}
+                              >
+                                <div
+                                  className="bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform"
+                                  style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* GROUP 2: 7 IMPORTANT SECURITY & PROTECTION FEATURES */}
+                      <div className="space-y-2 pt-2">
+                        <div className="font-serif text-sm font-bold uppercase tracking-wider text-[#141413] border-b border-[#E7E4DF] pb-2 flex items-center justify-between">
+                          <span>SECURITY & PROTECTION SUITE</span>
+                          <span className="font-mono text-[10px] text-[#C25E3E] bg-[#FAF8F5] px-2 py-0.5 border border-[#E7E4DF]">7 Active Guards</span>
+                        </div>
+                        {[
+                          { key: "inAppInquiryShield" as keyof FeatureToggles, title: "Inquire via Atelier (Phone Masked)", desc: "Hides artist phone numbers and keeps all client communication safely inside the platform messenger." },
+                          { key: "maskExactAddress" as keyof FeatureToggles, title: "Mask Exact Street Address", desc: "Only displays the craft cluster (e.g., Khurja, UP) instead of home address until platform verified visit." },
+                          { key: "escrowBadge" as keyof FeatureToggles, title: "50% Milestone Escrow Protection", desc: "Reassures collectors and guarantees creator payout upon verified dispatch tracking." },
+                          { key: "insuredTransitBadge" as keyof FeatureToggles, title: "Insured Domestic Transit Badge", desc: "Displays \"All-India Insured Transit via Blue Dart & Delhivery\" on every artwork page." },
+                          { key: "coaSeal" as keyof FeatureToggles, title: "Digital Certificate of Authenticity (COA)", desc: "Displays an inspectable digital Certificate of Authenticity with ledger registry hash." },
+                          { key: "watermarkProtection" as keyof FeatureToggles, title: "Archival Watermark & Right-Click Shield", desc: "Protects studio photography from unauthorized copying and scraping." },
+                          { key: "devanagariScript" as keyof FeatureToggles, title: "Bilingual Hindi / English Devanagari Title", desc: "Honors regional Indian craft roots with dual-script Devanagari calligraphy header." },
+                        ].map(feat => {
+                          const enabled = toggles[feat.key];
+                          return (
+                            <div
+                              key={feat.key}
+                              onClick={() => handleToggle(feat.key)}
+                              className="p-3 bg-[#FAF8F5] border-b border-[#E7E4DF] flex items-center justify-between gap-3 select-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                              <div className="min-w-0 pr-2">
+                                <span className="font-serif text-sm font-medium text-[#141413] block">{feat.title}</span>
+                                <p className="font-sans text-[11px] text-[#716E68] mt-0.5 leading-relaxed">{feat.desc}</p>
+                              </div>
+                              <div
+                                className="w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0"
+                                style={{ backgroundColor: enabled ? accentColor : "#E5E2DC" }}
+                              >
+                                <div
+                                  className="bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform"
+                                  style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* INTERACTIVE MODAL 1: ATELIER IN-APP INQUIRY DRAWER */}
+      {activeInquiryArtwork && (
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E]">In-App Studio Messenger</span>
+                <h3 className="font-serif text-2xl text-[#141413]">Inquire on "{activeInquiryArtwork}"</h3>
+              </div>
+              <button
+                onClick={() => setActiveInquiryArtwork(null)}
+                className="text-[#716E68] hover:text-[#141413] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Privacy Shield Notice */}
+            <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF] flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-[#C25E3E] text-[18px] shrink-0 mt-0.5">shield</span>
+              <p className="font-sans text-xs text-[#56423d] leading-relaxed">
+                <strong>Platform Protection Shield:</strong> Your personal phone number is never disclosed to the creator, and the creator’s mobile number is not shared. Inquiries, dimension discussions, and milestone escrow settlements are protected through Atelier.
+              </p>
+            </div>
+
+            <form onSubmit={handleSendInquiry} className="space-y-3">
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Your Name / Collector Identity *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Vikram & Priya Singhal"
+                  value={inquiryName}
+                  onChange={e => setInquiryName(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Delivery City in India *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Mumbai, Maharashtra"
+                  value={inquiryCity}
+                  onChange={e => setInquiryCity(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Message / Dimension Request</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="I am interested in acquiring this piece for our residence foyer. Please confirm crated courier delivery and milestone schedule."
+                  value={inquiryMessage}
+                  onChange={e => setInquiryMessage(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveInquiryArtwork(null)}
+                  className="px-4 py-2 border border-[#E7E4DF] text-xs font-mono text-[#716E68] hover:text-[#141413]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inquirySent}
+                  style={{ backgroundColor: accentColor }}
+                  className="px-5 py-2 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 font-semibold"
+                >
+                  {inquirySent ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                      <span>Relaying via Atelier...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                      <span>Send via Atelier Messenger</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-    );
+      )}
+
+      {/* INTERACTIVE MODAL 2: CERTIFICATE OF AUTHENTICITY (COA) */}
+      {coaModalArtwork && (
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#FAF8F5] border-2 border-[#141413] max-w-lg w-full p-8 shadow-2xl space-y-6 relative">
+            <button
+              onClick={() => setCoaModalArtwork(null)}
+              className="absolute top-4 right-4 text-[#716E68] hover:text-[#141413] cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            {/* Decorative Heritage Border */}
+            <div className="border border-[#141413]/30 p-6 space-y-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-[#C25E3E]">
+                <span className="material-symbols-outlined text-[24px]">verified</span>
+                <span className="font-mono text-xs font-bold uppercase tracking-widest text-[#141413]">Atelier India · Certificate of Authenticity</span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="font-serif text-2xl font-bold text-[#141413]">{coaModalArtwork.title}</div>
+                <div className="font-sans text-xs text-[#56423d]">{coaModalArtwork.medium || coaModalArtwork.specs}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-left bg-white p-3 border border-[#E7E4DF] text-xs font-mono">
+                <div>
+                  <span className="text-[10px] uppercase text-[#716E68] block">Lead Artist</span>
+                  <strong className="text-[#141413]">{customArtistName}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-[#716E68] block">Studio Moniker</span>
+                  <strong className="text-[#141413]">{customStudioName}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-[#716E68] block">Ledger Registry Hash</span>
+                  <span className="text-[#C25E3E] font-bold">#ATL-{baseArtist.ledgerId.replace('#', '')}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-[#716E68] block">Date of Creation</span>
+                  <span className="text-[#141413]">2026 · {customLocation.split('&')[0]}</span>
+                </div>
+              </div>
+
+              <p className="font-sans text-[11px] text-[#716E68] leading-relaxed italic">
+                This document certifies that the aforementioned work is a verified original piece created by the artist’s hand in India, documented in the sovereign Atelier Registry.
+              </p>
+
+              <div className="pt-2 flex items-center justify-between border-t border-[#E7E4DF]">
+                <div className="text-left">
+                  <div className="font-serif italic text-sm text-[#141413]">{customArtistName}</div>
+                  <div className="font-mono text-[9px] uppercase text-[#716E68]">Artist Studio Seal</div>
+                </div>
+                <div className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">
+                  Cryptographically Signed
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  window.print?.();
+                  showToast('Prepared Certificate for Print / Archival PDF.');
+                }}
+                className="px-4 py-1.5 bg-[#141413] text-white font-mono text-xs uppercase flex items-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[15px]">print</span>
+                <span>Print Certificate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL 3: HIGH-RESOLUTION CRAFT DETAIL ZOOM */}
+      {zoomedImage && (
+        <div className="fixed inset-0 bg-[#141413]/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="max-w-4xl w-full bg-[#141413] text-white p-4 space-y-3 relative border border-white/20">
+            <button
+              onClick={() => setZoomedImage(null)}
+              className="absolute top-3 right-3 text-white/70 hover:text-white cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div className="aspect-[16/10] overflow-hidden bg-black flex items-center justify-center">
+              <img
+                src={zoomedImage.url}
+                alt={zoomedImage.title}
+                className="max-h-[75vh] w-auto object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <h4 className="font-serif text-lg font-bold text-white">{zoomedImage.title}</h4>
+                <p className="font-sans text-xs text-white/70">{zoomedImage.specs}</p>
+              </div>
+              <span className="font-mono text-xs text-[#C25E3E]">High-Resolution Studio Zoom</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL 4: BESPOKE COMMISSION INTAKE */}
+      {isBespokeModalOpen && (
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Atelier Bespoke Portal</span>
+                <h3 className="font-serif text-2xl text-[#141413]">Commission Brief for {customStudioName}</h3>
+              </div>
+              <button
+                onClick={() => setIsBespokeModalOpen(false)}
+                className="text-[#716E68] hover:text-[#141413] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF] text-xs text-[#56423d] space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-[#141413]">
+                <span className="material-symbols-outlined text-emerald-700 text-[16px]">verified_user</span>
+                <span>Atelier Milestone Escrow Protection Guaranteed</span>
+              </div>
+              <p>
+                50% advance is held securely in platform escrow. The artisan begins handcrafting once the brief is agreed upon. Remaining 50% is released only after you approve insured dispatch inspection.
+              </p>
+            </div>
+
+            <form onSubmit={handleSendBespokeInquiry} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Your Name / Design Firm *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Studio Lotus / Ananya Roy"
+                    value={bespokeClientName}
+                    onChange={e => setBespokeClientName(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Project City in India *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. New Delhi, BLR, Mumbai"
+                    value={bespokeClientCity}
+                    onChange={e => setBespokeClientCity(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Target Project Budget *</label>
+                <select
+                  value={bespokeBudget}
+                  onChange={e => setBespokeBudget(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                >
+                  <option value="₹25,000 - ₹50,000">₹25,000 - ₹50,000 (Studio Edition)</option>
+                  <option value="₹50,000 - ₹1,00,000">₹50,000 - ₹1,00,000 (Architectural Centerpiece)</option>
+                  <option value="₹1,00,000 - ₹3,00,000">₹1,00,000 - ₹3,00,000 (Monolithic Scale)</option>
+                  <option value="₹3,00,000+">₹3,00,000+ (Hospitality / Museum Installation)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Project Scope & Material Brief *</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Describe desired dimensions, color palette, installation context, and architectural delivery deadline."
+                  value={bespokeScope}
+                  onChange={e => setBespokeScope(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBespokeModalOpen(false)}
+                  className="px-4 py-2 border border-[#E7E4DF] text-xs font-mono text-[#716E68]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bespokeSent}
+                  style={{ backgroundColor: accentColor }}
+                  className="px-5 py-2 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 font-semibold"
+                >
+                  {bespokeSent ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                      <span>Relaying Brief via Escrow...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                      <span>Submit Protected Commission Brief</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL 5: ADD NEW ARTWORK TO GALLERY */}
+      {isAddArtworkOpen && (
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Studio Catalog Editor</span>
+                <h3 className="font-serif text-2xl text-[#141413]">Document New Piece</h3>
+              </div>
+              <button
+                onClick={() => setIsAddArtworkOpen(false)}
+                className="text-[#716E68] hover:text-[#141413] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddArtwork} className="space-y-3">
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Piece Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Terra Sigillata Ceremonial Bowl"
+                  value={newArtTitle}
+                  onChange={e => setNewArtTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Discipline Category</label>
+                  <select
+                    value={newArtCategory}
+                    onChange={e => setNewArtCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                  >
+                    <option value="Vessel">Vessel / Pottery</option>
+                    <option value="Sculpture">Sculpture</option>
+                    <option value="Tapestry">Tapestry / Handloom</option>
+                    <option value="Tableware">Tableware</option>
+                    <option value="Lighting">Lighting</option>
+                    <option value="Wearables">Wearables</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Price (₹ INR) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={newArtPrice}
+                    onChange={e => setNewArtPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Medium & Natural Pigments</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Wood-fired Gangetic stoneware with natural iron glaze"
+                  value={newArtMedium}
+                  onChange={e => setNewArtMedium(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Dimensions</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 34 × 22 × 22 cm"
+                    value={newArtDims}
+                    onChange={e => setNewArtDims(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Edition Type</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Unique Original · 1 of 1"
+                    value={newArtEdition}
+                    onChange={e => setNewArtEdition(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">High-Res Photograph URL</label>
+                <input
+                  type="text"
+                  value={newArtImg}
+                  onChange={e => setNewArtImg(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddArtworkOpen(false)}
+                  className="px-4 py-2 border border-[#E7E4DF] text-xs font-mono text-[#716E68]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ backgroundColor: accentColor }}
+                  className="px-5 py-2 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[15px]">add</span>
+                  <span>Publish to Catalog</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL 6: LOOKBOOK & EXHIBITION CATALOG EXPORT */}
+      {isLookbookModalOpen && (
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#141413] max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Architectural Lookbook & Catalog</span>
+                <h3 className="font-serif text-2xl text-[#141413]">{customStudioName} · Exhibition Dossier</h3>
+              </div>
+              <button
+                onClick={() => setIsLookbookModalOpen(false)}
+                className="text-[#716E68] hover:text-[#141413] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <p className="font-sans text-xs text-[#56423d] leading-relaxed">
+              Generate a printable, museum-grade PDF Lookbook with high-resolution imagery, material telemetry, and Atelier Escrow QR codes for interior architects, collectors, and galleries.
+            </p>
+
+            <div className="p-4 bg-[#FAF8F5] border border-[#E7E4DF] space-y-3 font-mono text-xs">
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-[#716E68]">Studio Moniker</span>
+                <span className="font-bold text-[#141413]">{customStudioName}</span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-[#716E68]">Documented Pieces</span>
+                <span className="font-bold text-[#141413]">{artworksList.length + 1} Artworks</span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-[#716E68]">Atelier Escrow Protection</span>
+                <span className="text-emerald-800 font-bold">Verified QR Settlement Included</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#716E68]">Master Artisan</span>
+                <span className="text-[#141413]">{customArtistName}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setIsLookbookModalOpen(false)}
+                className="px-4 py-2 border border-[#E7E4DF] text-xs font-mono text-[#716E68]"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  window.print?.();
+                  showToast('Prepared Lookbook for Export & Print!');
+                }}
+                className="px-5 py-2 bg-[#141413] text-white font-mono text-xs uppercase flex items-center gap-2 cursor-pointer shadow-xs font-semibold"
+              >
+                <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                <span>Download Print-Ready PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL 7: WHAT MORE CAN WE DO ROADMAP & INNOVATIONS */}
+      {isRoadmapOpen && (
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#141413] max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold">Product Strategy & Future Upgrades</span>
+                <h3 className="font-serif text-2xl text-[#141413]">10 Game-Changing Features for Portfolio Customiser</h3>
+              </div>
+              <button
+                onClick={() => setIsRoadmapOpen(false)}
+                className="text-[#716E68] hover:text-[#141413] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <p className="font-sans text-xs text-[#56423d] leading-relaxed">
+              These suggestions highlight high-leverage innovations that can make Atelier’s Portfolio Customiser the undisputed gold standard for small Indian craftspeople, independent studios, and global fine art collectors:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  num: '01',
+                  title: 'Live AR / Spatial "View in Room" Simulator',
+                  desc: 'Allow collectors using mobile devices to project the exact dimensions of a ceramic urn or handloom tapestry onto their living room walls with accurate scale indicators.'
+                },
+                {
+                  num: '02',
+                  title: 'Private VIP Collector Vault (Password / Link Gate)',
+                  desc: 'Permit creators to upload new kiln batches 48 hours prior to public launch, generating private password-protected links for trusted architects and patron circles.'
+                },
+                {
+                  num: '03',
+                  title: 'CAD / DWG & High-Res Swatch Kit for Architects',
+                  desc: 'Luxury interior designers specifying pieces for hotels and villas can download 3D CAD models and high-res raw texture swatches directly from the portfolio.'
+                },
+                {
+                  num: '04',
+                  title: 'Multi-Currency International Checkout (₹ INR / $ USD / € EUR)',
+                  desc: 'Automate live real-time currency conversion with international DHL insured courier crating calculation and customs export documentation assist.'
+                },
+                {
+                  num: '05',
+                  title: 'Ambient Studio Soundscapes & Audio Commentary',
+                  desc: 'Integrate subtle ambient audio players (e.g., sound of the potter’s wheel or pit-loom clack) and 45-second voice notes from the master craftsman explaining a piece.'
+                },
+                {
+                  num: '06',
+                  title: 'Custom Domain Mapping (yourstudio.in / yourname.art)',
+                  desc: 'Allow creators to attach their personal custom domain with automatic SSL certificates while keeping all in-app messaging and 50% escrow checkouts fully mediated.'
+                },
+                {
+                  num: '07',
+                  title: 'Live Kiln Batch Countdown & Drop System',
+                  desc: 'Create anticipation for limited firings or monsoon textile drops with a live countdown timer: "Next Wood Firing Unloading: Friday 4:00 PM IST".'
+                },
+                {
+                  num: '08',
+                  title: 'One-Click Print Lookbook & Exhibition Dossier',
+                  desc: 'Auto-generate clean, high-resolution A4 and Letter PDF catalogs with QR codes linking directly to Atelier Escrow checkout for gallery booths and art fairs.'
+                },
+                {
+                  num: '09',
+                  title: 'AI Materiality & Craft Storyteller from Studio Photos',
+                  desc: 'Creators upload 3 kiln/workshop photos; the system automatically draft technical specs (clay origin, firing cones, pit-loom thread counts) and poetic monographs.'
+                },
+                {
+                  num: '10',
+                  title: 'Collective Guild & Master-Apprentice Dual Sign-off',
+                  desc: 'Allow cooperative craft clusters (like Khurja Potteries or Bastar Bell Metal Guild) to co-curate portfolios where senior master artisans digitally co-sign certificates.'
+                }
+              ].map(item => (
+                <div key={item.num} className="p-3.5 border border-[#E7E4DF] bg-[#FAF8F5] space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-[#C25E3E] font-bold">{item.num}</span>
+                    <h4 className="font-serif text-sm font-bold text-[#141413]">{item.title}</h4>
+                  </div>
+                  <p className="font-sans text-xs text-[#56423d] leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-[#E7E4DF]">
+              <button
+                onClick={() => setIsRoadmapOpen(false)}
+                className="px-5 py-2 bg-[#141413] text-white font-mono text-xs uppercase cursor-pointer shadow-xs font-semibold"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
