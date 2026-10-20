@@ -1,4 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Artwork,
+  getStoredStudioArtworks,
+  saveStoredStudioArtworks,
+  getStoredPortfolioArtworkIds,
+  saveStoredPortfolioArtworkIds,
+  convertArtworkToCatalogItem
+} from '../components/data/studioArtworksStore';
 
 interface PortfolioCustomizerScreenProps {
   onNavigate: (path: string) => void;
@@ -420,8 +428,157 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   // Small screen host tab switcher (< lg screens)
   const [hostSmallScreenTab, setHostSmallScreenTab] = useState<'controls' | 'preview'>('preview');
 
-  // Primary Customizer Tabs: Templates (10), Content (Section-wise), Style, Security
-  const [expandedSections, setExpandedSections] = useState({ templates: true, studio: false, styles: false, security: false });
+  // Primary Customizer Collapsible Sections:
+  // Templates, Dashboard Artworks, Identity & Lineage, Hero & Statement, Featured Masterwork,
+  // Portfolio Catalog Works, Craft & Kiln Telemetry, Bespoke Commissions, About & Heritage,
+  // Section Architecture, Theme & Palette, Typography, Contact & Privacy
+  const [expandedSections, setExpandedSections] = useState({
+    templates: false,
+    dashboardArtworks: true, // open by default so user can immediately see this feature
+    identity: false,
+    hero: false,
+    masterwork: false,
+    catalog: false,
+    process: false,
+    bespoke: false,
+    about: false,
+    section: false,
+    theme: false,
+    typography: false,
+    contact: false,
+  });
+
+  const toggleCollapsibleSection = (key: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Studio Dashboard Artworks integration state
+  const [studioArtworks, setStudioArtworks] = useState<Artwork[]>(() => getStoredStudioArtworks());
+  const [portfolioArtworkIds, setPortfolioArtworkIds] = useState<string[]>(() => getStoredPortfolioArtworkIds());
+  const [isAddDashboardArtModalOpen, setIsAddDashboardArtModalOpen] = useState(false);
+  const [dashboardArtFilter, setDashboardArtFilter] = useState<string>('All');
+
+  // Form state for adding new artwork to Studio Dashboard from Customizer
+  const [dashArtTitle, setDashArtTitle] = useState('');
+  const [dashArtDiscipline, setDashArtDiscipline] = useState('Clay & Terracotta');
+  const [dashArtMedium, setDashArtMedium] = useState('');
+  const [dashArtDimensions, setDashArtDimensions] = useState('');
+  const [dashArtPrice, setDashArtPrice] = useState('');
+  const [dashArtStatus, setDashArtStatus] = useState<'Available' | 'Reserved' | 'Sold'>('Available');
+  const [dashArtCollection, setDashArtCollection] = useState('Independent Works');
+  const [dashArtImage, setDashArtImage] = useState('https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80');
+  const [dashArtNotes, setDashArtNotes] = useState('');
+
+  // Listen for storage updates across tabs / screens
+  useEffect(() => {
+    const handleSync = () => {
+      setStudioArtworks(getStoredStudioArtworks());
+      setPortfolioArtworkIds(getStoredPortfolioArtworkIds());
+    };
+    window.addEventListener('atelier_artworks_updated', handleSync);
+    return () => window.removeEventListener('atelier_artworks_updated', handleSync);
+  }, []);
+
+  // Sync artworksList with selected portfolio items
+  useEffect(() => {
+    const activeStudioPieces = studioArtworks
+      .filter(art => portfolioArtworkIds.includes(art.id))
+      .map(convertArtworkToCatalogItem);
+
+    // Keep any user-added custom pieces that aren't in studioArtworks
+    const customPieces = artworksList.filter(item => !studioArtworks.some(a => a.id === item.id));
+
+    if (activeStudioPieces.length > 0 || customPieces.length > 0) {
+      setArtworksList([...activeStudioPieces, ...customPieces]);
+    } else {
+      setArtworksList([]);
+    }
+  }, [studioArtworks, portfolioArtworkIds]);
+
+  const toggleArtworkInPortfolio = (artId: string) => {
+    const isIncluded = portfolioArtworkIds.includes(artId);
+    let nextIds: string[];
+    if (isIncluded) {
+      nextIds = portfolioArtworkIds.filter(id => id !== artId);
+      showToast('Artwork removed from portfolio');
+    } else {
+      nextIds = [...portfolioArtworkIds, artId];
+      showToast('Artwork added to portfolio');
+    }
+    setPortfolioArtworkIds(nextIds);
+    saveStoredPortfolioArtworkIds(nextIds);
+  };
+
+  const handleIncludeAllDashboardArtworks = () => {
+    const allIds = studioArtworks.map(a => a.id);
+    setPortfolioArtworkIds(allIds);
+    saveStoredPortfolioArtworkIds(allIds);
+    showToast(`Included all ${allIds.length} studio artworks in portfolio`);
+  };
+
+  const handleResetPortfolioArtworks = () => {
+    const defaultIds = ['ART-2024-001', 'ART-2024-002', 'ART-2024-003', 'ART-2024-004'];
+    setPortfolioArtworkIds(defaultIds);
+    saveStoredPortfolioArtworkIds(defaultIds);
+    showToast('Reset portfolio selection to default pieces');
+  };
+
+  const handleCreateDashboardArtwork = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dashArtTitle.trim()) return;
+
+    const formattedPrice = dashArtPrice.startsWith('₹') ? dashArtPrice : `₹${dashArtPrice}`;
+    const rawVal = parseInt(dashArtPrice.replace(/[^0-9]/g, '')) || 15000;
+
+    const newArt: Artwork = {
+      id: `ART-2024-${String(studioArtworks.length + 1).padStart(3, '0')}`,
+      title: dashArtTitle.trim(),
+      discipline: dashArtDiscipline,
+      medium: dashArtMedium.trim() || 'Handcrafted traditional medium',
+      dimensions: dashArtDimensions.trim() || 'Custom studio scale',
+      weight: 'Studio packaged',
+      price: formattedPrice,
+      rawPrice: rawVal,
+      status: dashArtStatus,
+      collection: dashArtCollection.trim() || 'Independent Works',
+      image: dashArtImage.trim() || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80',
+      notes: dashArtNotes.trim() || 'Direct from artisan kiln & workshop.'
+    };
+
+    const updatedStudio = [newArt, ...studioArtworks];
+    setStudioArtworks(updatedStudio);
+    saveStoredStudioArtworks(updatedStudio);
+
+    // Automatically include newly created piece in portfolio
+    const nextIds = [newArt.id, ...portfolioArtworkIds];
+    setPortfolioArtworkIds(nextIds);
+    saveStoredPortfolioArtworkIds(nextIds);
+
+    setIsAddDashboardArtModalOpen(false);
+    showToast(`Added "${newArt.title}" to dashboard and portfolio!`);
+
+    // Reset form
+    setDashArtTitle('');
+    setDashArtMedium('');
+    setDashArtDimensions('');
+    setDashArtPrice('');
+    setDashArtNotes('');
+  };
+
+  const handleDeleteDashboardArtwork = (artId: string, artTitle: string) => {
+    const updatedStudio = studioArtworks.filter(a => a.id !== artId);
+    setStudioArtworks(updatedStudio);
+    saveStoredStudioArtworks(updatedStudio);
+
+    const nextIds = portfolioArtworkIds.filter(id => id !== artId);
+    setPortfolioArtworkIds(nextIds);
+    saveStoredPortfolioArtworkIds(nextIds);
+
+    showToast(`Deleted "${artTitle}" from studio dashboard`);
+  };
 
   // Sub-section switcher inside "Studio (Content)" tab
   const [studioEditSection, setStudioEditSection] = useState<'hero' | 'masterwork' | 'gallery' | 'process' | 'bespoke' | 'about' | 'policies'>('hero');
@@ -575,9 +732,6 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   // Lookbook PDF Export Simulator Modal
   const [isLookbookModalOpen, setIsLookbookModalOpen] = useState(false);
 
-  // Suggestions & Roadmap Modal ("What more can we do")
-  const [isRoadmapOpen, setIsRoadmapOpen] = useState(false);
-
   // Toast alert
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -593,12 +747,12 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   const isMobileViewport = viewportMode === 'mobile';
   const isTabletViewport = viewportMode === 'tablet';
 
-  // 10 Distinct Master Templates for Indian Craft Disciplines
+  // 15 Distinct Professional Master Templates for Indian Craft Disciplines
   const TEN_TEMPLATES: TemplatePreset[] = [
     {
       id: 'kora',
       name: '01. Kora Kagaz Minimal',
-      craftSubhead: 'Khurja Ceramics & Fine Arts',
+      craftSubhead: 'Tokyo / Basel Ceramic Monograph',
       categoryTag: 'Ceramics',
       canvasColor: 'bone',
       typography: 'cormorant',
@@ -606,7 +760,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '16:10',
       borderStyle: 'hairline',
       accentColor: '#C25E3E',
-      description: 'Crisp museum bone paper, terracotta oxide accents, and prominent unglazed ceramic monographs.',
+      description: 'Pristine museum bone paper, Cormorant Garamond display serif, terracotta oxide accents, and prominent archival exhibition plates.',
       swatches: ['#FFFFFF', '#C25E3E', '#141413', '#E7E4DF'],
       pricingMode: 'transparent',
       toggles: {
@@ -635,7 +789,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'khadi',
       name: '02. Khadi Raw Linen',
-      craftSubhead: 'Varanasi Pit-Loom Handloom',
+      craftSubhead: 'Varanasi Handloom Textile Catalog',
       categoryTag: 'Textiles',
       canvasColor: 'linen',
       typography: 'playfair',
@@ -643,7 +797,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '4:3',
       borderStyle: 'hairline',
       accentColor: '#2B4C6F',
-      description: 'Warm unbleached handloom linen, wild indigo accents, and clean balanced catalog layout.',
+      description: 'Unbleached natural linen ground, Playfair Display typography, wild indigo accents, and structured textile catalog grid.',
       swatches: ['#F6F3ED', '#2B4C6F', '#23211E', '#DDD8CE'],
       pricingMode: 'transparent',
       toggles: {
@@ -671,17 +825,17 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     },
     {
       id: 'geru',
-      name: '03. Geru & Clay Kiln',
-      craftSubhead: 'Earthen Red Clay Terracotta',
+      name: '03. Geru Clay & Kiln Smoke',
+      craftSubhead: 'Wood-Firing Documentary Journal',
       categoryTag: 'Ceramics',
       canvasColor: 'terracotta',
       typography: 'cormorant',
       archetype: 'story',
       aspectRatio: '4:3',
       borderStyle: 'matting',
-      accentColor: '#C25E3E',
-      description: 'Warm baked earthen umber with roasted clay tones celebrating centuries of Khurja and Bastar craft.',
-      swatches: ['#221A18', '#C25E3E', '#F4EDE4', '#453531'],
+      accentColor: '#D95F38',
+      description: 'Baked terracotta umber ground, Cormorant Garamond italics, kiln firing documentary, and 4-angle craft inspection.',
+      swatches: ['#1F1715', '#D95F38', '#F5EDE5', '#3E2F2B'],
       pricingMode: 'inquire',
       toggles: {
         showHeroSection: true,
@@ -709,7 +863,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'kajal',
       name: '04. Kajal & Basalt Night',
-      craftSubhead: 'Bastar Lost-Wax Bell Metal',
+      craftSubhead: 'Lost-Wax Bell Metal Darkroom Vault',
       categoryTag: 'Metal',
       canvasColor: 'basalt',
       typography: 'syne',
@@ -717,8 +871,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '16:10',
       borderStyle: 'hairline',
       accentColor: '#C89D55',
-      description: 'Quiet darkroom luxury with antique bell-metal gold accents and high-contrast masterwork inspection.',
-      swatches: ['#141413', '#C89D55', '#F5F2EB', '#2F2E2A'],
+      description: 'Basalt charcoal darkroom luxury, Syne avant-garde typography, burnished bell-metal gold accents, and digital COA certificates.',
+      swatches: ['#111110', '#C89D55', '#F5F2EB', '#2A2926'],
       pricingMode: 'transparent',
       toggles: {
         showHeroSection: true,
@@ -746,7 +900,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'jaipur',
       name: '05. Jaipur Cobalt & Quartz',
-      craftSubhead: 'Jaipur Blue Pottery Tradition',
+      craftSubhead: 'Symmetric Blue Pottery Salon',
       categoryTag: 'Ceramics',
       canvasColor: 'bone',
       typography: 'playfair',
@@ -754,7 +908,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '1:1',
       borderStyle: 'matting',
       accentColor: '#155278',
-      description: 'Bright Persian cobalt blue, Egyptian paste quartz glaze, and crisp royal Rajasthani geometry.',
+      description: 'Crisp gallery bone canvas, Playfair Display symmetry, Persian cobalt blue accents, and 1:1 square salon geometry.',
       swatches: ['#FFFFFF', '#155278', '#E6A15C', '#1A2E3D'],
       pricingMode: 'transparent',
       toggles: {
@@ -783,7 +937,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'wasli',
       name: '06. Wasli & Kishangarh Gold',
-      craftSubhead: 'Miniature Painting & Pigments',
+      craftSubhead: 'Miniature Monograph & Provenance',
       categoryTag: 'Painting',
       canvasColor: 'sandalwood',
       typography: 'cormorant',
@@ -791,8 +945,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '3:4',
       borderStyle: 'matting',
       accentColor: '#B8860B',
-      description: 'Handmade hemp wasli paper tones, genuine 24k gold leaf foil accents, and stone mineral colors.',
-      swatches: ['#F7EFE1', '#B8860B', '#2C2723', '#D6C8B2'],
+      description: 'Handmade hemp wasli paper tones, genuine 24k gold leaf foil accents, 3:4 vertical frames, and watermark protection.',
+      swatches: ['#FAF4EA', '#B8860B', '#2C2723', '#E5D8C3'],
       pricingMode: 'range',
       toggles: {
         showHeroSection: true,
@@ -820,16 +974,16 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'shekhawati',
       name: '07. Shekhawati Teak & Brass',
-      craftSubhead: 'Haveli Woodcarving & Brass Inlay',
+      craftSubhead: 'Haveli Architectural Woodcraft',
       categoryTag: 'Wood',
       canvasColor: 'teak',
       typography: 'cinzel',
       archetype: 'story',
       aspectRatio: '16:10',
       borderStyle: 'hairline',
-      accentColor: '#C89D55',
-      description: 'Aged Sheesham teakwood brown, hand-beaten brass studs, and architectural haveli craftsmanship.',
-      swatches: ['#2A1F1B', '#C89D55', '#EFE7DA', '#42332C'],
+      accentColor: '#D4AF37',
+      description: 'Deep aged Sheesham teakwood, Cinzel Roman capital letterforms, hand-beaten brass accents, and architectural provenance.',
+      swatches: ['#1B1613', '#D4AF37', '#EFE7DA', '#382D26'],
       pricingMode: 'transparent',
       toggles: {
         showHeroSection: true,
@@ -857,7 +1011,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'bidri',
       name: '08. Bidri & Sterling Silver',
-      craftSubhead: 'Deccan Zinc-Alloy Damascening',
+      craftSubhead: 'Deccan Damascene Precision Archive',
       categoryTag: 'Metal',
       canvasColor: 'basalt',
       typography: 'syne',
@@ -865,8 +1019,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '1:1',
       borderStyle: 'hairline',
       accentColor: '#E2E8F0',
-      description: 'Jet-black oxidised zinc base adorned with pure sterling silver inlay from historic Bidar forts.',
-      swatches: ['#141413', '#E2E8F0', '#94A3B8', '#272725'],
+      description: 'Obsidian zinc base with sterling silver inlay, Syne geometric typography, and macro precision inspection.',
+      swatches: ['#121417', '#E2E8F0', '#94A3B8', '#2B3038'],
       pricingMode: 'transparent',
       toggles: {
         showHeroSection: true,
@@ -894,7 +1048,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'rogan',
       name: '09. Kutch Rogan & Mud Lippan',
-      craftSubhead: 'Castor Oil Paint & Earthen Relief',
+      craftSubhead: 'Heritage Earth & Mirror Relief',
       categoryTag: 'Heritage Arts',
       canvasColor: 'multani',
       typography: 'playfair',
@@ -902,8 +1056,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
       aspectRatio: '4:3',
       borderStyle: 'matting',
       accentColor: '#D9531E',
-      description: 'Boiled wild castor oil elastic pigments, white clay lippan borders, and mirror stud reflections.',
-      swatches: ['#EDE6DA', '#D9531E', '#3D312A', '#C7B7A3'],
+      description: 'Multani earth sand ground, Playfair Display, castor saffron rust accents, and studio visit reservation liaison.',
+      swatches: ['#F4EFE6', '#D9531E', '#3D312A', '#D8CCBD'],
       pricingMode: 'transparent',
       toggles: {
         showHeroSection: true,
@@ -931,16 +1085,16 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     {
       id: 'patachitra',
       name: '10. Bengal Patachitra Scroll',
-      craftSubhead: 'Narrative Scroll & Vegetable Dye',
+      craftSubhead: 'Narrative Scroll Monograph',
       categoryTag: 'Painting',
       canvasColor: 'sandstone',
-      typography: 'cormorant',
+      typography: 'baskerville',
       archetype: 'monograph',
       aspectRatio: '3:4',
       borderStyle: 'hairline',
       accentColor: '#943826',
-      description: 'Traditional scroll storytelling with lampblack, conch shell white, and Indian madder root red.',
-      swatches: ['#F2E8DC', '#943826', '#1E3A2F', '#E5DCB8'],
+      description: 'Conch shell parchment, Libre Baskerville literary serif, vegetable dye madder red accents, and story monograph layout.',
+      swatches: ['#F5ECE1', '#943826', '#1E3A2F', '#E2D5C3'],
       pricingMode: 'transparent',
       toggles: {
         showHeroSection: true,
@@ -961,6 +1115,191 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
         studioVisitPolicy: true,
         craftMasterBadge: true,
         watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'bodoni-luxury',
+      name: '11. Bodoni Haute Couture',
+      craftSubhead: 'Paris / Milan Fine Art Salon',
+      categoryTag: 'Textiles',
+      canvasColor: 'basalt',
+      typography: 'bodoni',
+      archetype: 'monograph',
+      aspectRatio: '2:3',
+      borderStyle: 'rivets',
+      accentColor: '#E2E8F0',
+      description: 'High-contrast Bodoni Moda typography, midnight basalt ground, brass corner rivets, and ultra-luxury couture presentation.',
+      swatches: ['#0A0A09', '#E2E8F0', '#C5A880', '#222220'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: false,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'cinzel-monument',
+      name: '12. Cinzel Stone Monument',
+      craftSubhead: 'Himalayan Temple Carving Archive',
+      categoryTag: 'Sculpture',
+      canvasColor: 'forest',
+      typography: 'cinzel',
+      archetype: 'story',
+      aspectRatio: '16:10',
+      borderStyle: 'matting',
+      accentColor: '#C89D55',
+      description: 'Deep Pichwai neem forest green ground, monumental Cinzel Roman capitals, antique gold foil accents, and stone sculpture provenance.',
+      swatches: ['#16241B', '#C89D55', '#F5F2EB', '#273C2E'],
+      pricingMode: 'inquire',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: false,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'space-telemetry',
+      name: '13. Space Spec Telemetry',
+      craftSubhead: 'Industrial Ceramic Laboratory',
+      categoryTag: 'Ceramics',
+      canvasColor: 'sandstone',
+      typography: 'space',
+      archetype: 'grid',
+      aspectRatio: '1:1',
+      borderStyle: 'hairline',
+      accentColor: '#3F5342',
+      description: 'Marwar sandstone dune ochre ground, Space Grotesk studio telemetry fonts, forest green accents, and scientific kiln curves.',
+      swatches: ['#F2E8DC', '#3F5342', '#141413', '#D6C8B5'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: false,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: false,
+        craftMasterBadge: true,
+        watermarkProtection: false,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'indigo-velvet',
+      name: '14. Kashi Neel Velvet',
+      craftSubhead: 'Varanasi Ghat Nocturne Archive',
+      categoryTag: 'Textiles',
+      canvasColor: 'indigo',
+      typography: 'cormorant',
+      archetype: 'story',
+      aspectRatio: '3:4',
+      borderStyle: 'float',
+      accentColor: '#38BDF8',
+      description: 'Kashi deep indigo night ground, Cormorant Garamond italic headings, electric sky blue accents, and floating museum cards.',
+      swatches: ['#121A24', '#38BDF8', '#F8FAFC', '#1E293B'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: true,
+        maskExactAddress: true,
+        directEmailShield: true,
+      }
+    },
+    {
+      id: 'sandalwood-ivory',
+      name: '15. Chandan Ivory & Ochre',
+      craftSubhead: 'Mysore Sandalwood & Gold Leaf',
+      categoryTag: 'Wood',
+      canvasColor: 'sandalwood',
+      typography: 'playfair',
+      archetype: 'grid',
+      aspectRatio: '4:3',
+      borderStyle: 'matting',
+      accentColor: '#D95F38',
+      description: 'Warm sandalwood ivory ground, Playfair Display typography, geru rust accents, and matted gallery framing.',
+      swatches: ['#F7EFE1', '#D95F38', '#2D231E', '#E4D5BC'],
+      pricingMode: 'transparent',
+      toggles: {
+        showHeroSection: true,
+        showFeaturedWorkSection: true,
+        showCollectionsSection: true,
+        showAboutSection: true,
+        showCommissionsSection: true,
+        showContactSection: true,
+        collectorPricing: true,
+        inAppInquiryShield: true,
+        escrowBadge: true,
+        insuredTransitBadge: true,
+        coaSeal: true,
+        devanagariScript: true,
+        craftMaterialSpecs: true,
+        limitedEditionsStock: true,
+        commissionStatus: true,
+        studioVisitPolicy: true,
+        craftMasterBadge: true,
+        watermarkProtection: false,
         maskExactAddress: true,
         directEmailShield: true,
       }
@@ -1032,125 +1371,207 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
     showToast(`Loaded discipline preset: ${p.name}`);
   };
 
-  // Color theme classes
+  // Color theme classes with full dark/light systemic palette awareness (Market-Standard)
   const getThemeClasses = () => {
     switch (canvasColor) {
       case 'basalt':
         return {
-          bg: 'bg-[#141413]',
+          isDark: true,
+          bg: 'bg-[#111110]',
           text: 'text-[#F5F2EB]',
-          border: 'border-[#2F2E2A]',
-          subtleBg: 'bg-[#1E1E1B]',
-          cardBg: 'bg-[#1A1A17]',
-          cardBorder: 'border-[#33322E]',
-          mutedText: 'text-[#A09D95]',
+          border: 'border-[#2A2926]',
+          subtleBg: 'bg-[#181716]',
+          cardBg: 'bg-[#191817]',
+          cardBorder: 'border-[#33312C]',
+          mutedText: 'text-[#A39E94]',
+          tagBg: 'bg-[#22211F]',
+          tagBorder: 'border-[#383632]',
+          tagText: 'text-[#E8E4DA]',
+          btnSecondary: 'bg-white/10 hover:bg-white/15 text-white border-white/20',
+          specLine: 'border-[#2A2926]',
+          itemBg: 'bg-[#181716]',
         };
       case 'teak':
         return {
-          bg: 'bg-[#2A1F1B]',
+          isDark: true,
+          bg: 'bg-[#1B1613]',
           text: 'text-[#EFE7DA]',
-          border: 'border-[#4A3730]',
-          subtleBg: 'bg-[#352722]',
-          cardBg: 'bg-[#2F231F]',
-          cardBorder: 'border-[#533E37]',
-          mutedText: 'text-[#B8A79E]',
+          border: 'border-[#362C26]',
+          subtleBg: 'bg-[#241E1A]',
+          cardBg: 'bg-[#221C18]',
+          cardBorder: 'border-[#423630]',
+          mutedText: 'text-[#B3A398]',
+          tagBg: 'bg-[#2A231E]',
+          tagBorder: 'border-[#483B33]',
+          tagText: 'text-[#E5DCBE]',
+          btnSecondary: 'bg-white/10 hover:bg-white/15 text-white border-white/20',
+          specLine: 'border-[#362C26]',
+          itemBg: 'bg-[#241E1A]',
         };
       case 'forest':
         return {
-          bg: 'bg-[#16241B]',
-          text: 'text-[#EDEFE9]',
-          border: 'border-[#2C3F32]',
-          subtleBg: 'bg-[#1E3024]',
-          cardBg: 'bg-[#1A2A20]',
-          cardBorder: 'border-[#344C3D]',
-          mutedText: 'text-[#9CAD9E]',
+          isDark: true,
+          bg: 'bg-[#112016]',
+          text: 'text-[#ECF1EC]',
+          border: 'border-[#233829]',
+          subtleBg: 'bg-[#172A1E]',
+          cardBg: 'bg-[#15261B]',
+          cardBorder: 'border-[#2C4634]',
+          mutedText: 'text-[#9CB0A1]',
+          tagBg: 'bg-[#1A3122]',
+          tagBorder: 'border-[#32523A]',
+          tagText: 'text-[#DDE7DE]',
+          btnSecondary: 'bg-white/10 hover:bg-white/15 text-white border-white/20',
+          specLine: 'border-[#233829]',
+          itemBg: 'bg-[#172A1E]',
         };
       case 'indigo':
         return {
-          bg: 'bg-[#121A24]',
-          text: 'text-[#F4F6F8]',
-          border: 'border-[#263548]',
-          subtleBg: 'bg-[#1A2533]',
-          cardBg: 'bg-[#16202C]',
-          cardBorder: 'border-[#2D3E54]',
-          mutedText: 'text-[#A5B4C7]',
+          isDark: true,
+          bg: 'bg-[#101824]',
+          text: 'text-[#F2F5F8]',
+          border: 'border-[#223145]',
+          subtleBg: 'bg-[#172130]',
+          cardBg: 'bg-[#151E2B]',
+          cardBorder: 'border-[#2A3B52]',
+          mutedText: 'text-[#9EAEBF]',
+          tagBg: 'bg-[#1B2738]',
+          tagBorder: 'border-[#2E435E]',
+          tagText: 'text-[#E1EAF2]',
+          btnSecondary: 'bg-white/10 hover:bg-white/15 text-white border-white/20',
+          specLine: 'border-[#223145]',
+          itemBg: 'bg-[#172130]',
         };
       case 'terracotta':
         return {
-          bg: 'bg-[#221A18]',
+          isDark: true,
+          bg: 'bg-[#1E1715]',
           text: 'text-[#F4EDE4]',
-          border: 'border-[#433430]',
-          subtleBg: 'bg-[#2C211E]',
-          cardBg: 'bg-[#281E1B]',
-          cardBorder: 'border-[#4B3B36]',
-          mutedText: 'text-[#C7B5AF]',
+          border: 'border-[#3D302B]',
+          subtleBg: 'bg-[#291F1C]',
+          cardBg: 'bg-[#241C19]',
+          cardBorder: 'border-[#463732]',
+          mutedText: 'text-[#BFAFA7]',
+          tagBg: 'bg-[#302521]',
+          tagBorder: 'border-[#4F3E38]',
+          tagText: 'text-[#EFE5DC]',
+          btnSecondary: 'bg-white/10 hover:bg-white/15 text-white border-white/20',
+          specLine: 'border-[#3D302B]',
+          itemBg: 'bg-[#291F1C]',
         };
       case 'sandstone':
         return {
+          isDark: false,
           bg: 'bg-[#F2E8DC]',
-          text: 'text-[#26201B]',
-          border: 'border-[#DFD1BF]',
-          subtleBg: 'bg-[#E8DCCF]',
-          cardBg: 'bg-[#F8F1E7]',
-          cardBorder: 'border-[#DBD0BF]',
-          mutedText: 'text-[#7A6C5F]',
+          text: 'text-[#241E19]',
+          border: 'border-[#DCD0BE]',
+          subtleBg: 'bg-[#E6D9C8]',
+          cardBg: 'bg-[#F7EFE4]',
+          cardBorder: 'border-[#D9CCB7]',
+          mutedText: 'text-[#6E6256]',
+          tagBg: 'bg-[#E8DCCB]',
+          tagBorder: 'border-[#CFC0AA]',
+          tagText: 'text-[#3E342B]',
+          btnSecondary: 'bg-black/5 hover:bg-black/10 text-[#241E19] border-[#D9CCB7]',
+          specLine: 'border-[#DCD0BE]',
+          itemBg: 'bg-[#E6D9C8]',
         };
       case 'sandalwood':
         return {
+          isDark: false,
           bg: 'bg-[#F7EFE1]',
-          text: 'text-[#2C2723]',
-          border: 'border-[#DFD3BF]',
-          subtleBg: 'bg-[#EDE4D2]',
+          text: 'text-[#26211C]',
+          border: 'border-[#DDD0BA]',
+          subtleBg: 'bg-[#EFE4D0]',
           cardBg: 'bg-[#FAF4E8]',
-          cardBorder: 'border-[#DDD0BB]',
-          mutedText: 'text-[#7D7368]',
+          cardBorder: 'border-[#DBCDB4]',
+          mutedText: 'text-[#6D6357]',
+          tagBg: 'bg-[#ECE0CC]',
+          tagBorder: 'border-[#D4C3A7]',
+          tagText: 'text-[#42392F]',
+          btnSecondary: 'bg-black/5 hover:bg-black/10 text-[#26211C] border-[#DBCDB4]',
+          specLine: 'border-[#DDD0BA]',
+          itemBg: 'bg-[#EFE4D0]',
         };
       case 'multani':
         return {
+          isDark: false,
           bg: 'bg-[#EDE6DA]',
-          text: 'text-[#25221E]',
-          border: 'border-[#D6CCC0]',
-          subtleBg: 'bg-[#E3D9CB]',
-          cardBg: 'bg-[#F3ECE0]',
-          cardBorder: 'border-[#D4C9BC]',
-          mutedText: 'text-[#736B62]',
+          text: 'text-[#231F1C]',
+          border: 'border-[#D6CABE]',
+          subtleBg: 'bg-[#DFD3C4]',
+          cardBg: 'bg-[#F4ECE1]',
+          cardBorder: 'border-[#D5C7B7]',
+          mutedText: 'text-[#6B6259]',
+          tagBg: 'bg-[#DDD1C1]',
+          tagBorder: 'border-[#C8B8A4]',
+          tagText: 'text-[#3B342D]',
+          btnSecondary: 'bg-black/5 hover:bg-black/10 text-[#231F1C] border-[#D5C7B7]',
+          specLine: 'border-[#D6CABE]',
+          itemBg: 'bg-[#DFD3C4]',
         };
       case 'linen':
         return {
+          isDark: false,
           bg: 'bg-[#F6F3ED]',
-          text: 'text-[#23211E]',
-          border: 'border-[#DDD8CE]',
-          subtleBg: 'bg-[#EFECE4]',
-          cardBg: 'bg-[#FAF8F5]',
-          cardBorder: 'border-[#DFDACF]',
-          mutedText: 'text-[#6F6B64]',
+          text: 'text-[#22201D]',
+          border: 'border-[#DDD6CB]',
+          subtleBg: 'bg-[#EDE7DC]',
+          cardBg: 'bg-[#FAF7F2]',
+          cardBorder: 'border-[#DCD4C7]',
+          mutedText: 'text-[#6A645C]',
+          tagBg: 'bg-[#E8E2D6]',
+          tagBorder: 'border-[#CFC5B6]',
+          tagText: 'text-[#3A3631]',
+          btnSecondary: 'bg-black/5 hover:bg-black/10 text-[#22201D] border-[#DCD4C7]',
+          specLine: 'border-[#DDD6CB]',
+          itemBg: 'bg-[#EDE7DC]',
         };
       case 'bone':
       default:
         return {
+          isDark: false,
           bg: 'bg-[#FFFFFF]',
           text: 'text-[#141413]',
-          border: 'border-[#E7E4DF]',
+          border: 'border-[#E5E0D8]',
           subtleBg: 'bg-[#FAF8F5]',
           cardBg: 'bg-[#FFFFFF]',
-          cardBorder: 'border-[#E7E4DF]',
-          mutedText: 'text-[#716E68]',
+          cardBorder: 'border-[#E5E0D8]',
+          mutedText: 'text-[#69645E]',
+          tagBg: 'bg-[#F2EFE9]',
+          tagBorder: 'border-[#D8D4CC]',
+          tagText: 'text-[#2C2926]',
+          btnSecondary: 'bg-[#FAF8F5] hover:bg-white text-[#141413] border-[#D8D4CE]',
+          specLine: 'border-[#E5E0D8]',
+          itemBg: 'bg-[#FAF8F5]',
         };
     }
   };
 
   const theme = getThemeClasses();
 
-  const getHeaderFontClass = () => {
-    if (typography === 'cormorant') return 'font-serif italic';
-    if (typography === 'playfair') return 'font-serif';
-    if (typography === 'cinzel') return 'font-serif uppercase tracking-widest font-semibold';
-    if (typography === 'syne') return 'font-sans uppercase font-extrabold tracking-tight';
-    if (typography === 'space') return 'font-mono uppercase font-bold tracking-tight';
-    if (typography === 'baskerville') return 'font-serif font-medium';
-    if (typography === 'bodoni') return 'font-serif font-black tracking-normal';
-    return 'font-serif';
+  const getDisplayFontClass = () => {
+    switch (typography) {
+      case 'cormorant':
+        return 'font-cormorant italic font-normal';
+      case 'playfair':
+        return 'font-playfair font-normal';
+      case 'cinzel':
+        return 'font-cinzel uppercase font-semibold tracking-[0.14em]';
+      case 'syne':
+        return 'font-syne uppercase font-bold tracking-tight';
+      case 'space':
+        return 'font-jetbrains uppercase tracking-tight font-medium';
+      case 'baskerville':
+        return 'font-baskerville font-normal';
+      case 'bodoni':
+        return 'font-bodoni font-normal tracking-wide';
+      default:
+        return 'font-cormorant italic font-normal';
+    }
   };
+
+  const getHeaderFontClass = () => getDisplayFontClass();
 
   const getAspectClass = () => {
     if (aspectRatio === '1:1') return 'aspect-square';
@@ -1162,11 +1583,11 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   };
 
   const getCardElevationClass = () => {
-    if (borderStyle === 'matting') return 'border-2 p-3 sm:p-4 ring-1 ring-black/10';
+    if (borderStyle === 'matting') return 'border-2 p-3 sm:p-5 ring-1 ring-black/10';
     if (borderStyle === 'flush') return 'border-none p-0 shadow-none';
-    if (borderStyle === 'float') return 'border shadow-md hover:shadow-lg transition-shadow p-3';
-    if (borderStyle === 'rivets') return 'border border-dashed p-3 relative';
-    return 'border p-3 sm:p-4';
+    if (borderStyle === 'float') return 'border shadow-md hover:shadow-lg transition-shadow p-3 sm:p-5';
+    if (borderStyle === 'rivets') return 'border border-dashed p-3 sm:p-5 relative';
+    return 'border p-3 sm:p-5';
   };
 
   const handleCopyLink = () => {
@@ -1238,34 +1659,82 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   return (
     <div className="min-h-screen bg-[#F4F1EA] flex flex-col overflow-hidden text-[#141413]">
       
-      {/* TOP STUDIO TOOLBAR & PREVIEW CONTROLLER */}
-      <div className="h-14 bg-white border-b border-[#E7E4DF] px-4 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+      {/* ROW 1: ACTIVE WORKSPACE & GLOBAL STATUS BAR */}
+      <div className="h-10 bg-white border-b border-[#E7E4DF] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+        {/* Left: Active Workspace Pill */}
+        <div className="border border-[#D4D0C8] bg-transparent px-2 sm:px-2.5 py-1 rounded-xs flex items-center gap-1.5 sm:gap-2 shrink min-w-0">
+          <span className="w-2 h-2 rounded-full bg-[#A84A28] shrink-0"></span>
+          <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-[#4A4744] font-medium truncate">
+            <span className="hidden xs:inline">ACTIVE WORKSPACE: </span>ELENA VANCE
+          </span>
+        </div>
+
+        {/* Right: View Public Portfolio, Notifications, User Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={() => {
+              setIsPreviewExpanded(true);
+              showToast('Viewing Public Portfolio');
+            }}
+            className="text-[11px] sm:text-xs font-mono font-medium tracking-wider text-[#2D2A28] hover:text-black flex items-center gap-1 transition-colors cursor-pointer mr-0.5 sm:mr-2"
+            title="Open Public Portfolio"
+          >
+            <span className="hidden sm:inline">VIEW PUBLIC PORTFOLIO</span>
+            <span className="sm:hidden">PUBLIC PORTFOLIO</span>
+            <span className="text-xs sm:text-sm">↗</span>
+          </button>
+
+          <button
+            onClick={() => showToast('All notifications caught up')}
+            className="relative p-1 text-[#5A5754] hover:text-[#141413] transition-colors cursor-pointer"
+            title="Notifications"
+          >
+            <span className="material-symbols-outlined text-[19px]">notifications</span>
+            <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#C85A32] ring-2 ring-white"></span>
+          </button>
+
+          <div
+            className="w-7 h-7 rounded-full bg-[#8C3A27] text-white flex items-center justify-center font-medium text-xs shadow-xs cursor-pointer select-none shrink-0"
+            title="Elena Vance (Active Studio)"
+          >
+            <span className="material-symbols-outlined text-[16px]">person</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ROW 2: SUB-HEADER TOOLBAR & PREVIEW CONTROLLER */}
+      <div className="h-14 bg-white border-b border-[#E7E4DF] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-20 gap-2">
         
         {/* Brand & Breadcrumbs */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0">
           <button
             onClick={() => onNavigate('studio-overview')}
-            className="flex items-center gap-1.5 text-xs font-mono text-[#716E68] hover:text-[#141413] transition-colors"
+            className="flex items-center gap-1 text-xs sm:text-sm font-sans text-[#716E68] hover:text-[#141413] transition-colors cursor-pointer shrink-0"
+            title="Back to Studio Hub"
           >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            <span className="hidden sm:inline">Studio Hub</span>
+            <span className="text-base leading-none">←</span>
+            <span className="hidden xs:inline">Studio Hub</span>
           </button>
-          <span className="text-[#D0C8B8]">/</span>
-          <div className="flex items-center gap-2">
-            <span className="font-serif text-sm font-bold text-[#141413]">Portfolio Customiser</span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-mono border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-[#D0C8B8] shrink-0">/</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="font-sans font-bold text-xs sm:text-base text-[#141413] tracking-tight truncate">
+              Portfolio Customiser
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBF7EE] text-[#1E7E34] border border-[#BDE3C6] text-xs font-sans font-medium shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#2E7D32]"></span>
               Live Sync Active
             </span>
           </div>
         </div>
 
-        {/* Viewport Screen Switcher (Mobile, Tablet, Desktop) */}
-        <div className="hidden md:flex items-center bg-[#FAF8F5] border border-[#E7E4DF] p-0.5 rounded-sm">
+        {/* Viewport Screen Switcher (Mobile, Tablet, Desktop) on Desktop/Tablet */}
+        <div className="hidden md:flex items-center bg-[#FAF9F6] border border-[#D8D4CE] p-0.5 rounded-md shadow-xs shrink-0">
           <button
             onClick={() => setViewportMode('desktop')}
-            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
-              viewportMode === 'desktop' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            className={`px-2.5 lg:px-3 py-1 text-xs font-sans font-medium rounded flex items-center gap-1.5 transition-all cursor-pointer ${
+              viewportMode === 'desktop'
+                ? 'bg-white text-[#141413] shadow-xs border border-[#D8D4CE]/70 font-semibold'
+                : 'text-[#706C66] hover:text-[#141413]'
             }`}
             title="Desktop 1440px"
           >
@@ -1275,8 +1744,10 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
           <button
             onClick={() => setViewportMode('tablet')}
-            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
-              viewportMode === 'tablet' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            className={`px-2.5 lg:px-3 py-1 text-xs font-sans font-medium rounded flex items-center gap-1.5 transition-all cursor-pointer ${
+              viewportMode === 'tablet'
+                ? 'bg-white text-[#141413] shadow-xs border border-[#D8D4CE]/70 font-semibold'
+                : 'text-[#706C66] hover:text-[#141413]'
             }`}
             title="Tablet 768px"
           >
@@ -1286,8 +1757,10 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
           <button
             onClick={() => setViewportMode('mobile')}
-            className={`px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
-              viewportMode === 'mobile' ? 'bg-white text-[#141413] shadow-xs font-semibold' : 'text-[#716E68] hover:text-[#141413]'
+            className={`px-2.5 lg:px-3 py-1 text-xs font-sans font-medium rounded flex items-center gap-1.5 transition-all cursor-pointer ${
+              viewportMode === 'mobile'
+                ? 'bg-white text-[#141413] shadow-xs border border-[#D8D4CE]/70 font-semibold'
+                : 'text-[#706C66] hover:text-[#141413]'
             }`}
             title="Mobile 390px"
           >
@@ -1297,10 +1770,10 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
         </div>
 
         {/* Small Screen Tab Switcher (Preview on Left, Controls on Right) */}
-        <div className="flex lg:hidden items-center bg-[#FAF8F5] border border-[#E7E4DF] p-0.5">
+        <div className="flex lg:hidden items-center bg-[#FAF9F6] border border-[#D8D4CE] p-0.5 rounded-md shrink-0">
           <button
             onClick={() => setHostSmallScreenTab('preview')}
-            className={`px-2.5 py-1 text-xs font-mono cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-mono cursor-pointer rounded transition-all ${
               hostSmallScreenTab === 'preview' ? 'bg-white text-[#141413] font-semibold shadow-xs' : 'text-[#716E68]'
             }`}
           >
@@ -1308,7 +1781,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
           </button>
           <button
             onClick={() => setHostSmallScreenTab('controls')}
-            className={`px-2.5 py-1 text-xs font-mono cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-mono cursor-pointer rounded transition-all ${
               hostSmallScreenTab === 'controls' ? 'bg-white text-[#141413] font-semibold shadow-xs' : 'text-[#716E68]'
             }`}
           >
@@ -1317,47 +1790,27 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
         </div>
 
         {/* Header Right Actions */}
-        <div className="flex items-center gap-2">
-          {/* Innovations Roadmap & Ideas Button */}
-          <button
-            onClick={() => setIsRoadmapOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF8F5] hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-mono transition-colors cursor-pointer"
-            title="Future Roadmap & Suggestions"
-          >
-            <span className="material-symbols-outlined text-[15px] text-amber-700">lightbulb</span>
-            <span className="hidden sm:inline font-semibold">10 What's Next Ideas</span>
-          </button>
-
-          {/* Lookbook PDF Generator */}
-          <button
-            onClick={() => setIsLookbookModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-xs font-mono text-[#141413] transition-colors cursor-pointer"
-            title="Export Lookbook / Spec Sheet"
-          >
-            <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
-            <span>Lookbook</span>
-          </button>
-
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Copy Public Link */}
           <button
             onClick={handleCopyLink}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-xs font-mono text-[#141413] transition-colors cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white hover:bg-[#FAF9F6] border border-[#D8D4CE] text-[#2C2A29] text-xs font-sans font-medium rounded-md shadow-xs transition-colors cursor-pointer"
             title="Copy Public Link"
           >
             <span className="material-symbols-outlined text-[15px]">link</span>
-            <span>Copy Link</span>
+            <span className="whitespace-nowrap">Copy Link</span>
           </button>
 
-          {/* Expand Full Preview */}
+          {/* Expand Full Preview (Hidden on small mobile screens where toggle handles view) */}
           <button
             onClick={() => {
               setIsPreviewExpanded(!isPreviewExpanded);
               showToast(isPreviewExpanded ? 'Split Studio view' : 'Expanded Full Preview');
             }}
-            className="p-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-[#141413] transition-colors cursor-pointer"
+            className="hidden sm:flex w-8 h-8 items-center justify-center bg-white hover:bg-[#FAF9F6] border border-[#D8D4CE] text-[#2C2A29] rounded-md shadow-xs transition-colors cursor-pointer shrink-0"
             title={isPreviewExpanded ? 'Split Controls' : 'Expand Preview'}
           >
-            <span className="material-symbols-outlined text-[16px] block">
+            <span className="material-symbols-outlined text-[18px] block">
               {isPreviewExpanded ? 'splitscreen' : 'fullscreen'}
             </span>
           </button>
@@ -1365,11 +1818,10 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
           {/* Publish Site Button */}
           <button 
             onClick={() => showToast('Portfolio Published! Changes live on your public handle.')} 
-            style={{ backgroundColor: accentColor }}
-            className="px-3.5 py-1.5 text-white hover:opacity-90 transition-all flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider shadow-xs cursor-pointer font-semibold"
+            className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#0F3B4C] hover:bg-[#0B2E3D] text-white rounded-md font-mono text-[11px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 sm:gap-2 shadow-xs transition-all cursor-pointer shrink-0"
           >
-            <span>Publish Site</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            <span className="whitespace-nowrap">PUBLISH<span className="hidden xs:inline"> SITE</span></span>
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-white/80 shrink-0"></span>
           </button>
         </div>
       </div>
@@ -1469,72 +1921,127 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
               </div>
             )}
 
-            {/* LIVE PORTFOLIO CONTENT (Simulated website with real styling) */}
+            {/* LIVE PORTFOLIO CONTENT (Simulated website with real professional market styling) */}
             <div className={`overflow-visible transition-colors duration-300 ${theme.bg} ${theme.text}`}>
-              <div className={`space-y-12 ${isMobileViewport ? 'p-4 sm:p-5' : isTabletViewport ? 'p-6 sm:p-8' : 'p-8 sm:p-14'}`}>
+              <div className={`space-y-12 sm:space-y-16 ${isMobileViewport ? 'p-4 sm:p-5' : isTabletViewport ? 'p-6 sm:p-8' : 'p-8 sm:p-14'}`}>
                 
                 {/* 1. Header Navigation & Hero */}
                 {toggles.showHeroSection && (
                   <>
-                    <header className={`border-b ${theme.border} pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4`}>
-                      <div className="space-y-1">
+                    {/* Archetype-Specific Top Navigation Bar */}
+                    {archetype === 'monograph' ? (
+                      <header className={`border-b ${theme.border} pb-4 flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 select-none`}>
+                        <div className="space-y-1">
+                          {toggles.devanagariScript && (
+                            <span className="font-serif text-xs text-[#C25E3E] tracking-widest uppercase block">
+                              {customHindiTitle}
+                            </span>
+                          )}
+                          <h1 className={`font-bold tracking-tight ${getDisplayFontClass()} ${isMobileViewport ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}>
+                            {customStudioName}
+                          </h1>
+                          <p className={`font-sans text-xs ${theme.mutedText}`}>
+                            {customArtistName} · {toggles.maskExactAddress ? customLocation : `${customLocation} (Studio Direct)`}
+                          </p>
+                        </div>
+
+                        {/* Quiet Monograph Navigation */}
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                          <a href="#works" className={`${theme.mutedText} hover:${theme.text} transition-colors`}>Works</a>
+                          <span className={theme.mutedText}>·</span>
+                          <a href="#about" className={`${theme.mutedText} hover:${theme.text} transition-colors`}>Provenance</a>
+                          <span className={theme.mutedText}>·</span>
+                          <a href="#contact" className={`${theme.mutedText} hover:${theme.text} transition-colors`}>Inquiries</a>
+                          {toggles.escrowBadge && (
+                            <span className={`font-mono text-[10px] px-2 py-0.5 border ${theme.tagBg} ${theme.tagBorder} ${theme.tagText}`}>
+                              50% Escrow
+                            </span>
+                          )}
+                        </div>
+                      </header>
+                    ) : archetype === 'grid' ? (
+                      <header className={`border-b ${theme.border} pb-4 flex flex-col items-center text-center gap-2 select-none`}>
                         {toggles.devanagariScript && (
-                          <span className="font-serif text-xs text-[#C25E3E] block">
+                          <span className="font-serif text-xs text-[#C25E3E] tracking-widest uppercase">
                             {customHindiTitle}
                           </span>
                         )}
-                        <h1 className={`font-bold tracking-tight ${getHeaderFontClass()} ${isMobileViewport ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}>
+                        <h1 className={`font-bold tracking-tight ${getDisplayFontClass()} ${isMobileViewport ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}>
                           {customStudioName}
                         </h1>
-                        <p className={`font-sans text-xs ${theme.mutedText}`}>
-                          {customArtistName} · {toggles.maskExactAddress ? customLocation : `${customLocation} (Studio Direct)`}
-                        </p>
-                      </div>
+                        <div className={`flex items-center gap-2 text-xs font-mono ${theme.mutedText}`}>
+                          <span>{customDiscipline}</span>
+                          <span>·</span>
+                          <span>{toggles.maskExactAddress ? customLocation : `${customLocation} Studio`}</span>
+                          {bespokeAccepting && toggles.commissionStatus && (
+                            <>
+                              <span>·</span>
+                              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">● Commissions Open</span>
+                            </>
+                          )}
+                        </div>
+                      </header>
+                    ) : (
+                      /* Story Documentary Header */
+                      <header className={`border-b ${theme.border} pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 select-none`}>
+                        <div className="space-y-1">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-medium">
+                            Artisan Studio Documentary · {customLocation}
+                          </span>
+                          <h1 className={`font-bold tracking-tight ${getDisplayFontClass()} ${isMobileViewport ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}>
+                            {customStudioName}
+                          </h1>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-mono">
+                          {toggles.craftMasterBadge && (
+                            <span className={`px-2 py-0.5 border ${theme.tagBg} ${theme.tagBorder} ${theme.tagText} text-[10px]`}>
+                              ★ {guildTag.split('·')[0]}
+                            </span>
+                          )}
+                          {toggles.escrowBadge && (
+                            <span className="font-mono text-[10px] text-[#C25E3E] bg-[#C25E3E]/10 border border-[#C25E3E]/30 px-2 py-0.5">
+                              Escrow Protected
+                            </span>
+                          )}
+                        </div>
+                      </header>
+                    )}
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {toggles.craftMasterBadge && (
-                          <span className="font-mono text-[10px] text-amber-900 bg-amber-50 px-2 py-0.5 border border-amber-300">
-                            ★ {guildTag.split('·')[0]}
-                          </span>
-                        )}
-                        {toggles.commissionStatus && bespokeAccepting && (
-                          <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">
-                            ● Open for Commissions
-                          </span>
-                        )}
-                        {toggles.escrowBadge && (
-                          <span className="font-mono text-[10px] text-[#C25E3E] bg-[#FAF8F5] px-2 py-0.5 border border-[#E7E4DF]">
-                            50% Escrow Protected
-                          </span>
-                        )}
-                      </div>
-                    </header>
-
-                    <section className="space-y-3 max-w-3xl">
+                    {/* Hero Statement Section */}
+                    <section className={`space-y-4 ${archetype === 'grid' ? 'text-center max-w-2xl mx-auto' : 'max-w-3xl'}`}>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-medium">
-                          Studio Practice · {customDiscipline}
-                        </span>
+                        {archetype === 'monograph' && (
+                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#C25E3E] font-semibold">
+                            Catalogue Raisonné · 2026 Archive
+                          </span>
+                        )}
+                        {archetype === 'story' && (
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold">
+                            Generational Studio Craft · {customDiscipline}
+                          </span>
+                        )}
                       </div>
-                      <h2 className={`text-xl sm:text-2xl font-serif leading-snug`}>
+
+                      <h2 className={`text-xl sm:text-2xl md:text-3xl leading-snug font-serif ${getDisplayFontClass()}`}>
                         {customHeadline}
                       </h2>
+                      
                       <p className={`font-sans text-xs sm:text-sm leading-relaxed ${theme.mutedText}`}>
                         {customSubheadline}
                       </p>
 
-                      <div className="pt-2 flex items-center gap-3">
+                      <div className={`pt-2 flex items-center gap-3 ${archetype === 'grid' ? 'justify-center' : ''}`}>
                         <button
                           onClick={() => setActiveInquiryArtwork(masterworkTitle)}
                           style={{ backgroundColor: accentColor }}
-                          className="px-4 py-2 text-white font-mono text-xs uppercase tracking-wider shadow-xs font-semibold cursor-pointer"
+                          className="px-5 py-2.5 text-white font-mono text-xs uppercase tracking-wider shadow-xs font-semibold cursor-pointer transition-transform hover:scale-[1.02]"
                         >
                           {heroCtaLabel}
                         </button>
                         {bespokeAccepting && (
                           <button
                             onClick={() => setIsBespokeModalOpen(true)}
-                            className={`px-4 py-2 border ${theme.border} font-mono text-xs uppercase tracking-wider hover:bg-black/5 cursor-pointer`}
+                            className={`px-4 py-2.5 border font-mono text-xs uppercase tracking-wider cursor-pointer ${theme.btnSecondary}`}
                           >
                             Request Bespoke Project
                           </button>
@@ -1549,22 +2056,24 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                   <section className={`${getCardElevationClass()} ${theme.cardBorder} ${theme.cardBg} space-y-6 shadow-sm`}>
                     <div className="flex flex-col sm:flex-row sm:items-baseline justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Featured Masterwork</span>
-                        <h3 className={`font-serif text-2xl font-bold ${getHeaderFontClass()}`}>{masterworkTitle}</h3>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E]">
+                          {archetype === 'monograph' ? 'Plate I — Curated Masterwork' : archetype === 'story' ? 'Kiln Fired Centerpiece' : 'Featured Masterwork'}
+                        </span>
+                        <h3 className={`font-serif text-2xl font-bold ${getDisplayFontClass()} ${theme.text}`}>{masterworkTitle}</h3>
                         <p className={`font-sans text-xs ${theme.mutedText}`}>{masterworkSpecs}</p>
                       </div>
 
                       <div className="flex items-center gap-2 self-start sm:self-auto">
                         {pricingMode === 'transparent' ? (
-                          <span className="font-serif text-xl font-bold text-[#141413]">
+                          <span className={`font-serif text-xl sm:text-2xl font-bold ${theme.text}`}>
                             ₹{masterworkPrice.toLocaleString('en-IN')}
                           </span>
                         ) : pricingMode === 'range' ? (
-                          <span className="font-serif text-base font-bold text-[#141413]">
+                          <span className={`font-serif text-base sm:text-lg font-bold ${theme.text}`}>
                             ₹{Math.round(masterworkPrice * 0.9).toLocaleString('en-IN')} — ₹{Math.round(masterworkPrice * 1.15).toLocaleString('en-IN')}
                           </span>
                         ) : (
-                          <span className="font-mono text-xs uppercase px-2 py-1 bg-[#FAF8F5] border border-[#E7E4DF] text-[#716E68]">
+                          <span className={`font-mono text-xs uppercase px-2.5 py-1 border ${theme.tagBg} ${theme.tagBorder} ${theme.mutedText}`}>
                             Price on Inquiry
                           </span>
                         )}
@@ -1572,29 +2081,30 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                      <div className="lg:col-span-8 bg-[#FAF8F5] p-2 border border-[#E7E4DF] overflow-hidden">
+                      <div className={`lg:col-span-8 ${theme.subtleBg} p-2.5 border ${theme.border} overflow-hidden`}>
                         <div 
-                          className={`${getAspectClass()} bg-[#efeeeb] overflow-hidden relative cursor-pointer`}
+                          className={`${getAspectClass()} bg-black/10 overflow-hidden relative cursor-pointer group`}
                           onClick={() => setZoomedImage({ url: currentMasterworkImg(), title: masterworkTitle, specs: masterworkSpecs })}
                         >
                           <img
                             src={currentMasterworkImg()}
                             alt={masterworkTitle}
-                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             referrerPolicy="no-referrer"
                           />
                           {toggles.watermarkProtection && (
-                            <div className="absolute top-2 left-2 font-mono text-[9px] uppercase tracking-widest text-white/70 bg-black/40 px-2 py-0.5 backdrop-blur-xs">
-                              © Atelier Sovereign Archive
+                            <div className="absolute top-2 left-2 font-mono text-[9px] uppercase tracking-widest text-white/80 bg-black/60 px-2 py-0.5 backdrop-blur-xs">
+                              © {customStudioName} Sovereign Archive
                             </div>
                           )}
-                          <div className="absolute bottom-2 right-2 bg-black/80 text-white font-mono text-[9px] px-2 py-1 flex items-center gap-1 uppercase">
-                            <span className="material-symbols-outlined text-[12px]">zoom_in</span>
+                          <div className="absolute bottom-2 right-2 bg-black/80 text-white font-mono text-[9px] px-2.5 py-1 flex items-center gap-1.5 uppercase tracking-wider">
+                            <span className="material-symbols-outlined text-[13px]">zoom_in</span>
                             <span>Click to Inspect High-Res</span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2 pt-2">
+                        {/* 4 Interactive Viewing Angles */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 pt-2.5">
                           {[
                             { id: 'front', label: 'Front View' },
                             { id: 'texture', label: 'Craft Texture' },
@@ -1604,10 +2114,10 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                             <button
                               key={angle.id}
                               onClick={() => setMasterworkAngle(angle.id as any)}
-                              className={`py-1 text-[10px] font-mono uppercase border transition-colors cursor-pointer ${
+                              className={`py-1.5 text-[10px] font-mono uppercase border transition-colors cursor-pointer text-center ${
                                 masterworkAngle === angle.id
-                                  ? 'bg-[#141413] text-white border-black font-semibold'
-                                  : 'bg-white text-[#716E68] border-[#E7E4DF] hover:border-black'
+                                  ? 'bg-black text-white dark:bg-white dark:text-black border-transparent font-bold'
+                                  : `${theme.cardBg} ${theme.mutedText} ${theme.border} hover:border-black dark:hover:border-white`
                               }`}
                             >
                               {angle.label}
@@ -1616,28 +2126,29 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                         </div>
                       </div>
 
+                      {/* Technical Specs & Provenance */}
                       <div className="lg:col-span-4 space-y-4">
                         <div className="space-y-2 text-xs">
-                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
-                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Dimensions</span>
-                            <span className="font-mono text-[#141413]">{masterworkDims}</span>
+                          <div className={`flex justify-between border-b pb-1.5 ${theme.specLine}`}>
+                            <span className={`font-mono text-[10px] uppercase ${theme.mutedText}`}>Dimensions</span>
+                            <span className={`font-mono font-medium ${theme.text}`}>{masterworkDims}</span>
                           </div>
-                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
-                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Weight</span>
-                            <span className="font-mono text-[#141413]">{masterworkWeight}</span>
+                          <div className={`flex justify-between border-b pb-1.5 ${theme.specLine}`}>
+                            <span className={`font-mono text-[10px] uppercase ${theme.mutedText}`}>Weight</span>
+                            <span className={`font-mono font-medium ${theme.text}`}>{masterworkWeight}</span>
                           </div>
-                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
-                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Craft Cycle</span>
-                            <span className="font-sans text-[#141413]">{masterworkFiring}</span>
+                          <div className={`flex justify-between border-b pb-1.5 ${theme.specLine}`}>
+                            <span className={`font-mono text-[10px] uppercase ${theme.mutedText}`}>Craft Cycle</span>
+                            <span className={`font-sans ${theme.text}`}>{masterworkFiring}</span>
                           </div>
-                          <div className="flex justify-between border-b pb-1" style={{ borderColor: 'inherit' }}>
-                            <span className="font-mono text-[10px] uppercase text-[#716E68]">Provenance</span>
-                            <span className="font-sans text-[#141413] text-right">{masterworkProvenance}</span>
+                          <div className={`flex justify-between border-b pb-1.5 ${theme.specLine}`}>
+                            <span className={`font-mono text-[10px] uppercase ${theme.mutedText}`}>Provenance</span>
+                            <span className={`font-sans text-right ${theme.text}`}>{masterworkProvenance}</span>
                           </div>
                           {toggles.insuredTransitBadge && (
-                            <div className="flex items-center gap-1.5 text-emerald-800 text-[10px] font-mono pt-1">
-                              <span className="material-symbols-outlined text-[13px]">local_shipping</span>
-                              <span>Insured All-India Transit via Blue Dart</span>
+                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-[10px] font-mono pt-1">
+                              <span className="material-symbols-outlined text-[14px]">local_shipping</span>
+                              <span>Insured All-India Fine Art Transit</span>
                             </div>
                           )}
                         </div>
@@ -1647,7 +2158,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                             <button
                               onClick={() => setActiveInquiryArtwork(masterworkTitle)}
                               style={{ backgroundColor: accentColor }}
-                              className="w-full text-white py-2.5 px-4 font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs font-semibold"
+                              className="w-full text-white py-2.5 px-4 font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs font-semibold hover:opacity-95"
                             >
                               <span className="material-symbols-outlined text-[16px]">chat</span>
                               <span>Inquire via Atelier (Phone Masked)</span>
@@ -1657,7 +2168,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                           {toggles.coaSeal && (
                             <button
                               onClick={() => setCoaModalArtwork({ ...baseArtist.masterwork, title: masterworkTitle, medium: masterworkMedium })}
-                              className="w-full bg-[#FAF8F5] hover:bg-white text-[#141413] border border-[#E7E4DF] py-2 px-3 font-mono text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+                              className={`w-full py-2 px-3 font-mono text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer border ${theme.btnSecondary}`}
                             >
                               <span className="material-symbols-outlined text-[15px] text-[#C25E3E]">verified</span>
                               <span>Digital COA Certificate</span>
@@ -1671,63 +2182,63 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
                 {/* 3. Artworks Catalog & Collections */}
                 {toggles.showCollectionsSection && (
-                  <section className="space-y-6">
+                  <section id="works" className="space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-medium">{gallerySubtitle}</span>
-                        <h3 className="font-serif text-2xl font-bold">{galleryTitle}</h3>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-medium">{gallerySubtitle}</span>
+                        <h3 className={`font-serif text-2xl font-bold ${getDisplayFontClass()} ${theme.text}`}>{galleryTitle}</h3>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-[#716E68]">{artworksList.length} Pieces Documented</span>
+                        <span className={`font-mono text-xs ${theme.mutedText}`}>{artworksList.length} Pieces Documented</span>
                         <button
                           onClick={() => setIsAddArtworkOpen(true)}
-                          className="px-2.5 py-1 bg-white border border-[#E7E4DF] text-[#141413] text-[10px] font-mono uppercase hover:bg-black/5 cursor-pointer"
+                          className={`px-3 py-1 border text-[10px] font-mono uppercase cursor-pointer ${theme.btnSecondary}`}
                         >
                           + Add Piece
                         </button>
                       </div>
                     </div>
 
-                    <div className={`grid ${galleryLayout === '2-col' ? 'grid-cols-1 sm:grid-cols-2' : galleryLayout === 'masonry' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-6`}>
+                    <div className={`grid ${galleryLayout === '2-col' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-6`}>
                       {artworksList.map(item => (
                         <div key={item.id} className={`${getCardElevationClass()} ${theme.cardBorder} ${theme.cardBg} space-y-3 flex flex-col justify-between shadow-2xs`}>
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             <div 
-                              className={`${getAspectClass()} bg-[#efeeeb] overflow-hidden cursor-pointer relative group`}
+                              className={`${getAspectClass()} bg-black/10 overflow-hidden cursor-pointer relative group`}
                               onClick={() => setZoomedImage({ url: item.img, title: item.title, specs: item.medium })}
                             >
                               <img
                                 src={item.img}
                                 alt={item.title}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-600 group-hover:scale-105"
                                 referrerPolicy="no-referrer"
                               />
-                              <div className="absolute top-2 right-2 bg-black/80 text-white font-mono text-[9px] px-1.5 py-0.5">
+                              <div className="absolute top-2 right-2 bg-black/80 text-white font-mono text-[9px] px-2 py-0.5 uppercase tracking-wider">
                                 {item.category}
                               </div>
                             </div>
 
                             <div>
                               <div className="flex items-start justify-between gap-1">
-                                <h4 className="font-serif text-base font-semibold text-[#141413]">{item.title}</h4>
+                                <h4 className={`font-serif text-base font-semibold ${theme.text}`}>{item.title}</h4>
                                 {pricingMode === 'transparent' ? (
-                                  <span className="font-serif text-sm font-bold text-[#141413] shrink-0">
+                                  <span className={`font-serif text-sm font-bold ${theme.text} shrink-0`}>
                                     ₹{item.price.toLocaleString('en-IN')}
                                   </span>
                                 ) : pricingMode === 'range' ? (
-                                  <span className="font-serif text-xs font-bold text-[#141413] shrink-0">
+                                  <span className={`font-serif text-xs font-bold ${theme.text} shrink-0`}>
                                     ₹{Math.round(item.price * 0.9).toLocaleString('en-IN')}+
                                   </span>
                                 ) : (
-                                  <span className="font-mono text-[10px] text-[#716E68] shrink-0">On Inquiry</span>
+                                  <span className={`font-mono text-[10px] ${theme.mutedText} shrink-0`}>On Inquiry</span>
                                 )}
                               </div>
-                              <p className="font-sans text-xs text-[#56423d] pt-0.5 leading-relaxed">{item.medium}</p>
-                              <p className="font-mono text-[10px] text-[#716E68] pt-1">{item.dims} · {item.year}</p>
+                              <p className={`font-sans text-xs ${theme.mutedText} pt-0.5 leading-relaxed`}>{item.medium}</p>
+                              <p className={`font-mono text-[10px] ${theme.mutedText} pt-1`}>{item.dims} · {item.year}</p>
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-[#E7E4DF]/60 space-y-2">
+                          <div className={`pt-2.5 border-t ${theme.border} space-y-2`}>
                             {toggles.limitedEditionsStock && item.editionInfo && (
                               <div className="font-mono text-[10px] text-[#C25E3E] font-medium">
                                 {item.editionInfo}
@@ -1737,14 +2248,15 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => setActiveInquiryArtwork(item.title)}
-                                className="flex-1 py-1.5 px-2 bg-[#141413] hover:bg-[#C25E3E] text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                                style={{ backgroundColor: accentColor }}
+                                className="flex-1 py-1.5 px-2 text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer hover:opacity-90 font-semibold text-center"
                               >
                                 Inquire
                               </button>
                               {toggles.coaSeal && (
                                 <button
                                   onClick={() => setCoaModalArtwork(item)}
-                                  className="p-1.5 border border-[#E7E4DF] bg-white hover:bg-[#FAF8F5] text-[#141413] cursor-pointer"
+                                  className={`p-1.5 border cursor-pointer ${theme.btnSecondary}`}
                                   title="Certificate of Authenticity"
                                 >
                                   <span className="material-symbols-outlined text-[16px] block text-[#C25E3E]">verified</span>
@@ -1760,33 +2272,33 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
                 {/* 4. About & Studio Heritage */}
                 {toggles.showAboutSection && (
-                  <section className={`border ${theme.cardBorder} ${theme.subtleBg} p-6 sm:p-8 space-y-4`}>
-                    <div className="border-b pb-2" style={{ borderColor: 'inherit' }}>
-                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-medium">Materiality & Provenance</span>
-                      <h3 className="font-serif text-xl font-bold">{processTitle}</h3>
-                      <p className="font-sans text-xs text-[#716E68]">{processSubtitle}</p>
+                  <section id="about" className={`border ${theme.cardBorder} ${theme.subtleBg} p-6 sm:p-8 space-y-5`}>
+                    <div className="border-b pb-3" style={{ borderColor: 'inherit' }}>
+                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-medium tracking-wider">Materiality & Provenance</span>
+                      <h3 className={`font-serif text-xl font-bold ${getDisplayFontClass()} ${theme.text}`}>{processTitle}</h3>
+                      <p className={`font-sans text-xs ${theme.mutedText}`}>{processSubtitle}</p>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec1Label}</span>
-                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec1Val}</span>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>{spec1Label}</span>
+                        <span className={`font-sans text-xs font-semibold ${theme.text}`}>{spec1Val}</span>
                       </div>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec2Label}</span>
-                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec2Val}</span>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>{spec2Label}</span>
+                        <span className={`font-sans text-xs font-semibold ${theme.text}`}>{spec2Val}</span>
                       </div>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec3Label}</span>
-                        <span className="font-sans text-xs font-semibold text-[#141413]">{spec3Val}</span>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>{spec3Label}</span>
+                        <span className={`font-sans text-xs font-semibold ${theme.text}`}>{spec3Val}</span>
                       </div>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">{spec4Label}</span>
-                        <span className="font-sans text-xs font-semibold text-emerald-800">{spec4Val}</span>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>{spec4Label}</span>
+                        <span className="font-sans text-xs font-semibold text-emerald-700 dark:text-emerald-400">{spec4Val}</span>
                       </div>
                     </div>
 
-                    <p className="font-sans text-xs leading-relaxed text-[#56423d] pt-2 border-t" style={{ borderColor: 'inherit' }}>
+                    <p className={`font-sans text-xs leading-relaxed ${theme.text} opacity-90 pt-2 border-t ${theme.border}`}>
                       {processSummary}
                     </p>
                   </section>
@@ -1797,30 +2309,30 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                   <section className={`border ${theme.cardBorder} ${theme.cardBg} p-6 sm:p-8 space-y-4 shadow-xs`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 gap-2" style={{ borderColor: 'inherit' }}>
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-semibold">Architectural & Private Commissions</span>
-                        <h3 className="font-serif text-xl font-bold">{bespokeTitle}</h3>
+                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-semibold tracking-wider">Architectural & Private Commissions</span>
+                        <h3 className={`font-serif text-xl font-bold ${getDisplayFontClass()} ${theme.text}`}>{bespokeTitle}</h3>
                       </div>
-                      <span className="font-mono text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1 border border-emerald-300">
+                      <span className="font-mono text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 border border-emerald-500/30">
                         ● Accepting Bespoke Projects
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
-                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Lead Time</span>
-                        <span className="font-semibold text-[#141413] mt-0.5 block">{bespokeLeadTime}</span>
+                      <div className={`${theme.subtleBg} p-3.5 border ${theme.border}`}>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>Lead Time</span>
+                        <span className={`font-semibold ${theme.text} mt-0.5 block`}>{bespokeLeadTime}</span>
                       </div>
-                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Minimum Budget</span>
-                        <span className="font-semibold text-[#141413] mt-0.5 block">{bespokeMinBudget}</span>
+                      <div className={`${theme.subtleBg} p-3.5 border ${theme.border}`}>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>Minimum Budget</span>
+                        <span className={`font-semibold ${theme.text} mt-0.5 block`}>{bespokeMinBudget}</span>
                       </div>
-                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF]">
-                        <span className="font-mono text-[10px] uppercase text-[#716E68] block">Escrow Protection</span>
-                        <span className="font-semibold text-emerald-800 mt-0.5 block">50% Advance in Escrow</span>
+                      <div className={`${theme.subtleBg} p-3.5 border ${theme.border}`}>
+                        <span className={`font-mono text-[10px] uppercase ${theme.mutedText} block`}>Escrow Protection</span>
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5 block">50% Advance in Escrow</span>
                       </div>
                     </div>
 
-                    <p className="font-sans text-xs text-[#56423d] leading-relaxed">
+                    <p className={`font-sans text-xs ${theme.mutedText} leading-relaxed`}>
                       {bespokeTerms}
                     </p>
 
@@ -1828,7 +2340,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                       <button
                         onClick={() => setIsBespokeModalOpen(true)}
                         style={{ backgroundColor: accentColor }}
-                        className="px-5 py-2.5 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xs font-semibold"
+                        className="px-5 py-2.5 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xs font-semibold hover:opacity-95"
                       >
                         <span className="material-symbols-outlined text-[16px]">draw</span>
                         <span>{bespokeCtaLabel}</span>
@@ -1839,17 +2351,17 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
                 {/* 6. Contact & Footer */}
                 {toggles.showContactSection && (
-                  <footer className={`border-t ${theme.border} pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${theme.mutedText}`}>
+                  <footer id="contact" className={`border-t ${theme.border} pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${theme.mutedText}`}>
                     <div>
-                      <span>© {customStudioName} · Atelier Verified Independent Studio</span>
+                      <span className={theme.text}>© {customStudioName} · Atelier Verified Independent Studio</span>
                       {toggles.studioVisitPolicy && (
-                        <span className="block text-[11px] pt-0.5 text-[#56423d]">
+                        <span className={`block text-[11px] pt-0.5 ${theme.mutedText}`}>
                           {visitPolicyText}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5">
+                      <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
                         Phone Masked · In-App Inquiry Hub
                       </span>
                     </div>
@@ -1861,27 +2373,148 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
           </div>
         </div>
 
-        {/* RIGHT PANEL: 4 Extended Tabs (Templates, Content/Studio, Style, Security) - Window Height Restriction */}
+        {/* RIGHT PANEL: 6 Collapsible Panels (Templates, Content, Section, Theme, Typography, Contact & Privacy) */}
         {(!isPreviewExpanded) && (
-          <div className={`lg:col-span-5 xl:col-span-4 bg-white border border-[#E7E4DF] shadow-md rounded-md my-4 mr-4 flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden ${hostSmallScreenTab !== 'controls' ? 'hidden lg:flex' : 'flex'}`}>
+          <div className={`lg:col-span-5 xl:col-span-4 bg-white border border-[#E7E4DF] shadow-xs rounded-lg m-2.5 sm:m-4 lg:my-4 lg:mr-4 lg:ml-0 flex flex-col h-[calc(100vh-7.5rem)] lg:h-auto lg:max-h-[calc(100vh-8rem)] overflow-hidden ${hostSmallScreenTab !== 'controls' ? 'hidden lg:flex' : 'flex'}`}>
             
             {/* VERTICAL COLLAPSIBLE SECTIONS */}
-            <div className="flex-1 overflow-y-auto border-t border-[#E7E4DF]">
+            <div className="flex-1 overflow-y-auto">
               
-              {/* SECTION 1: TEMPLATES */}
-              <div className="border-b border-[#E7E4DF]">
+              {/* SECTION: SECTION */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
                 <button 
-                  onClick={() => setExpandedSections(prev => ({...prev, templates: !prev.templates}))}
-                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('section')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                    <span>Templates (10)</span>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">table_rows</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Section
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight">
+                        Choose which parts of your portfolio are visible
+                      </p>
+                    </div>
                   </div>
-                  <span className="material-symbols-outlined text-sm">{expandedSections.templates ? 'expand_less' : 'expand_more'}</span>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.section ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.section && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white">
+                    <div className="space-y-4">
+                      <div className="border-b border-[#E7E4DF] pb-3">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Section Architecture</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Portfolio Section Visibility & Layout</h3>
+                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                          Choose which parts of your portfolio are visible and select your market layout archetype.
+                        </p>
+                      </div>
+
+                      {/* Layout Archetype Selector */}
+                      <div className="bg-[#FAF8F5] p-3 border border-[#E7E4DF] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs uppercase text-[#141413] font-bold">
+                            Layout Archetype Architecture
+                          </span>
+                          <span className="font-mono text-[10px] text-[#C25E3E] uppercase font-semibold">
+                            {archetype} active
+                          </span>
+                        </div>
+                        <p className="font-sans text-[11px] text-[#716E68]">
+                          Structural layout engines modeled after award-winning market portfolios:
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          {[
+                            { id: 'monograph', label: 'Monograph', desc: 'Archival Plate & Editorial Monogram' },
+                            { id: 'grid', label: 'Salon Grid', desc: 'Balanced Contemporary Art Salon' },
+                            { id: 'story', label: 'Craft Story', desc: 'Documentary Kiln & Studio Journal' },
+                          ].map(arch => (
+                            <button
+                              key={arch.id}
+                              onClick={() => {
+                                setArchetype(arch.id as any);
+                                showToast(`Applied ${arch.label} Archetype`);
+                              }}
+                              className={`p-2 border text-center transition-all cursor-pointer ${
+                                archetype === arch.id ? 'border-[#141413] bg-white ring-1 ring-black font-semibold shadow-2xs' : 'border-[#E7E4DF] bg-[#FAF8F5] hover:bg-white'
+                              }`}
+                            >
+                              <span className="font-mono text-xs block font-bold text-[#141413]">{arch.label}</span>
+                              <span className="font-sans text-[9px] text-[#716E68] block mt-0.5">{arch.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {[
+                          { key: "showHeroSection" as keyof FeatureToggles, label: "Hero Section", desc: "Studio statement, title, and craft telemetry" },
+                          { key: "showFeaturedWorkSection" as keyof FeatureToggles, label: "Featured Work", desc: "Curated centerpiece masterwork spotlight" },
+                          { key: "showCollectionsSection" as keyof FeatureToggles, label: "Collections", desc: "Available artworks and catalog inventory" },
+                          { key: "showAboutSection" as keyof FeatureToggles, label: "About & Heritage", desc: "Artisan lineage and master craft tradition" },
+                          { key: "showCommissionsSection" as keyof FeatureToggles, label: "Commissions", desc: "Bespoke order inquiries and patron liaison" },
+                          { key: "showContactSection" as keyof FeatureToggles, label: "Contact", desc: "Studio visit inquiries and direct liaison" },
+                        ].map(sec => {
+                          const enabled = toggles[sec.key];
+                          return (
+                            <div
+                              key={sec.key}
+                              onClick={() => handleToggle(sec.key)}
+                              className="p-3 bg-[#FAF8F5] border border-[#E7E4DF] rounded-xs flex items-center justify-between gap-3 select-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                              <div className="min-w-0 pr-2">
+                                <span className="font-serif text-sm font-medium text-[#141413] block">{sec.label}</span>
+                                <p className="font-sans text-[11px] text-[#716E68] mt-0.5">{sec.desc}</p>
+                              </div>
+                              <div
+                                className="w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0"
+                                style={{ backgroundColor: enabled ? accentColor : "#E5E2DC" }}
+                              >
+                                <div
+                                  className="bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform"
+                                  style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 1: TEMPLATES */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('templates')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Templates
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight">
+                        Pick a ready-made look for your portfolio
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.templates ? 'expand_less' : 'expand_more'}
+                  </span>
                 </button>
                 {expandedSections.templates && (
-                  <div className="pb-4 px-4">
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white">
                     <div className="space-y-4">
                       <div className="border-b border-[#E7E4DF] pb-3">
                         <div className="flex items-center justify-between">
@@ -1954,636 +2587,32 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                 )}
               </div>
 
-              {/* SECTION 2: STUDIO (CONTENT) */}
-              <div className="border-b border-[#E7E4DF]">
+              {/* SECTION: THEME */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
                 <button 
-                  onClick={() => setExpandedSections(prev => ({...prev, studio: !prev.studio}))}
-                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('theme')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px]">dashboard_customize</span>
-                    <span>Content</span>
-                  </div>
-                  <span className="material-symbols-outlined text-sm">{expandedSections.studio ? "expand_less" : "expand_more"}</span>
-                </button>
-                {expandedSections.studio && (
-                  <div className="pb-4 px-4">
-                    <div className="space-y-5">
-                      <div className="border-b border-[#E7E4DF] pb-3">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Brand & Content</span>
-                        <h3 className="font-serif text-lg text-[#141413]">Section-Wise Content Access</h3>
-                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
-                          Tailor copy, telemetry, masterwork angles, and catalog items for each section of your portfolio.
-                        </p>
-                      </div>
-
-                      {/* Discipline Quick Preset Switcher */}
-                      <div className="flex items-center justify-between bg-[#FAF8F5] p-2 border border-[#E7E4DF] text-xs">
-                        <span className="font-mono text-[10px] text-[#716E68] uppercase font-semibold">Artisan Lineage Preset:</span>
-                        <div className="flex items-center gap-1 font-mono text-[11px]">
-                          <button onClick={() => handleSelectArtistPreset("aarav")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "aarav" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Potter</button>
-                          <button onClick={() => handleSelectArtistPreset("ananya")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "ananya" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Weaver</button>
-                          <button onClick={() => handleSelectArtistPreset("devendra")} className={`px-2 py-0.5 cursor-pointer ${selectedArtistId === "devendra" ? "bg-[#141413] text-white font-medium" : "text-[#716E68]"}`}>Sculptor</button>
-                        </div>
-                      </div>
-
-                      {/* Section-Wise Tabs Bar */}
-                      <div className="grid grid-cols-4 gap-1 font-mono text-[9px] uppercase text-center border-b border-[#E7E4DF] pb-3">
-                        <button onClick={() => setStudioEditSection("hero")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "hero" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Hero</button>
-                        <button onClick={() => setStudioEditSection("masterwork")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "masterwork" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Masterwork</button>
-                        <button onClick={() => setStudioEditSection("gallery")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "gallery" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Catalog ({artworksList.length})</button>
-                        <button onClick={() => setStudioEditSection("process")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "process" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Process</button>
-                        <button onClick={() => setStudioEditSection("bespoke")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "bespoke" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Bespoke</button>
-                        <button onClick={() => setStudioEditSection("about")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "about" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Heritage</button>
-                        <button onClick={() => setStudioEditSection("policies")} className={`py-1.5 px-1 border transition-colors cursor-pointer ${studioEditSection === "policies" ? "bg-[#141413] text-white border-black font-semibold" : "bg-[#FAF8F5] text-[#716E68] border-[#E7E4DF]"}`}>Policies</button>
-                      </div>
-
-                      {/* 1. HERO SECTION CONTROLS */}
-                      {studioEditSection === "hero" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Hero Section Customisation</span>
-                          
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Brand Name</label>
-                            <input
-                              type="text"
-                              value={customStudioName}
-                              onChange={e => setCustomStudioName(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artist / Founder Name</label>
-                            <input
-                              type="text"
-                              value={customArtistName}
-                              onChange={e => setCustomArtistName(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Public Handle</label>
-                            <div className="flex items-center">
-                              <span className="px-2.5 py-2 bg-[#FAF8F5] border border-r-0 border-[#E7E4DF] text-xs font-mono text-[#716E68]">
-                                atelier.art/@
-                              </span>
-                              <input
-                                type="text"
-                                value={customHandle}
-                                onChange={e => setCustomHandle(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413] focus:outline-none focus:border-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Heritage Hindi Devanagari Title</label>
-                            <input
-                              type="text"
-                              value={customHindiTitle}
-                              onChange={e => setCustomHindiTitle(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Craft Discipline & Medium</label>
-                            <input
-                              type="text"
-                              value={customDiscipline}
-                              onChange={e => setCustomDiscipline(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Geographic Cluster</label>
-                            <input
-                              type="text"
-                              value={customLocation}
-                              onChange={e => setCustomLocation(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Craft Statement / Headline</label>
-                            <textarea
-                              rows={2}
-                              value={customHeadline}
-                              onChange={e => setCustomHeadline(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Practice Philosophy / Subheadline</label>
-                            <textarea
-                              rows={3}
-                              value={customSubheadline}
-                              onChange={e => setCustomSubheadline(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero CTA Label</label>
-                              <input
-                                type="text"
-                                value={heroCtaLabel}
-                                onChange={e => setHeroCtaLabel(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Layout Variant</label>
-                              <select
-                                value={heroLayoutVariant}
-                                onChange={e => setHeroLayoutVariant(e.target.value as any)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
-                              >
-                                <option value="monograph">Centered Monograph</option>
-                                <option value="split">Split Studio Photo</option>
-                                <option value="architectural">Architectural Headline</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 2. MASTERWORK SECTION CONTROLS */}
-                      {studioEditSection === "masterwork" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Featured Masterwork Centerpiece</span>
-                          
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Masterwork Artwork Title</label>
-                            <input
-                              type="text"
-                              value={masterworkTitle}
-                              onChange={e => setMasterworkTitle(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hindi Calligraphy Name</label>
-                              <input
-                                type="text"
-                                value={masterworkHindiName}
-                                onChange={e => setMasterworkHindiName(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Price (₹ INR)</label>
-                              <input
-                                type="number"
-                                value={masterworkPrice}
-                                onChange={e => setMasterworkPrice(parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Material & Reduction Specs</label>
-                            <input
-                              type="text"
-                              value={masterworkSpecs}
-                              onChange={e => setMasterworkSpecs(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Dimensions</label>
-                              <input
-                                type="text"
-                                value={masterworkDims}
-                                onChange={e => setMasterworkDims(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Net Weight</label>
-                              <input
-                                type="text"
-                                value={masterworkWeight}
-                                onChange={e => setMasterworkWeight(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Firing Cycle / Loom Time</label>
-                              <input
-                                type="text"
-                                value={masterworkFiring}
-                                onChange={e => setMasterworkFiring(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Provenance / Exhibition Record</label>
-                              <input
-                                type="text"
-                                value={masterworkProvenance}
-                                onChange={e => setMasterworkProvenance(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          {/* 4 Image URLs */}
-                          <div className="border-t border-[#E7E4DF] pt-3 space-y-2">
-                            <label className="block font-mono text-[10px] uppercase text-[#141413] font-bold">4-Angle Masterwork Imagery</label>
-                            <div>
-                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 1: Front Elevation URL</span>
-                              <input
-                                type="text"
-                                value={masterworkImgFront}
-                                onChange={e => setMasterworkImgFront(e.target.value)}
-                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 2: Micro-Texture URL</span>
-                              <input
-                                type="text"
-                                value={masterworkImgTexture}
-                                onChange={e => setMasterworkImgTexture(e.target.value)}
-                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 3: Silhouette Profile URL</span>
-                              <input
-                                type="text"
-                                value={masterworkImgProfile}
-                                onChange={e => setMasterworkImgProfile(e.target.value)}
-                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 4: Spatial Context Living Space URL</span>
-                              <input
-                                type="text"
-                                value={masterworkImgSpatial}
-                                onChange={e => setMasterworkImgSpatial(e.target.value)}
-                                className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 3. CATALOG & GALLERY SECTION CONTROLS */}
-                      {studioEditSection === "gallery" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold">Studio Catalog & Editions</span>
-                            <button
-                              onClick={() => setIsAddArtworkOpen(true)}
-                              className="px-2.5 py-1 bg-[#141413] text-white text-[10px] font-mono uppercase flex items-center gap-1 cursor-pointer hover:bg-[#C25E3E]"
-                            >
-                              <span className="material-symbols-outlined text-[13px]">add</span>
-                              <span>Add Artwork</span>
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Title</label>
-                              <input
-                                type="text"
-                                value={galleryTitle}
-                                onChange={e => setGalleryTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Subtitle</label>
-                              <input
-                                type="text"
-                                value={gallerySubtitle}
-                                onChange={e => setGallerySubtitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { id: "3-col", label: "3 Columns" },
-                              { id: "2-col", label: "2 Columns" },
-                              { id: "masonry", label: "Masonry Flow" },
-                            ].map(l => (
-                              <button
-                                key={l.id}
-                                onClick={() => setGalleryLayout(l.id as any)}
-                                className={`py-1.5 text-center font-mono text-[10px] uppercase border cursor-pointer ${
-                                  galleryLayout === l.id ? "bg-[#141413] text-white border-black font-semibold" : "bg-white text-[#716E68] border-[#E7E4DF]"
-                                }`}
-                              >
-                                {l.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Items List with Edit/Delete */}
-                          <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
-                            <span className="font-mono text-[10px] uppercase text-[#716E68] font-semibold block">
-                              Documented Artworks ({artworksList.length})
-                            </span>
-                            {artworksList.map(item => (
-                              <div key={item.id} className="p-2 border border-[#E7E4DF] bg-[#FAF8F5] flex items-center justify-between gap-2 text-xs">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <img src={item.img} alt={item.title} className="w-8 h-8 object-cover border border-black/10 shrink-0" />
-                                  <div className="min-w-0">
-                                    <div className="font-serif font-bold text-[#141413] truncate">{item.title}</div>
-                                    <div className="font-mono text-[10px] text-[#716E68]">₹{item.price.toLocaleString("en-IN")} · {item.category}</div>
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveArtwork(item.id)}
-                                  className="text-red-700 hover:text-red-900 p-1 cursor-pointer shrink-0"
-                                  title="Remove Artwork"
-                                >
-                                  <span className="material-symbols-outlined text-[16px]">delete</span>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 4. PROCESS & TELEMETRY CONTROLS */}
-                      {studioEditSection === "process" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Kiln, Loom & Craft Telemetry</span>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Section Title</label>
-                              <input
-                                type="text"
-                                value={processTitle}
-                                onChange={e => setProcessTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Subtitle</label>
-                              <input
-                                type="text"
-                                value={processSubtitle}
-                                onChange={e => setProcessSubtitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          {/* 4 Telemetry Spec Cards */}
-                          <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
-                            <span className="font-mono text-[10px] uppercase text-[#141413] font-bold block">4 Craft Telemetry Metrics</span>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 1 Label & Value</span>
-                                <input
-                                  type="text"
-                                  value={spec1Label}
-                                  onChange={e => setSpec1Label(e.target.value)}
-                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
-                                />
-                                <input
-                                  type="text"
-                                  value={spec1Val}
-                                  onChange={e => setSpec1Val(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                                />
-                              </div>
-                              <div>
-                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 2 Label & Value</span>
-                                <input
-                                  type="text"
-                                  value={spec2Label}
-                                  onChange={e => setSpec2Label(e.target.value)}
-                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
-                                />
-                                <input
-                                  type="text"
-                                  value={spec2Val}
-                                  onChange={e => setSpec2Val(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                                />
-                              </div>
-                              <div>
-                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 3 Label & Value</span>
-                                <input
-                                  type="text"
-                                  value={spec3Label}
-                                  onChange={e => setSpec3Label(e.target.value)}
-                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
-                                />
-                                <input
-                                  type="text"
-                                  value={spec3Val}
-                                  onChange={e => setSpec3Val(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                                />
-                              </div>
-                              <div>
-                                <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 4 Label & Value</span>
-                                <input
-                                  type="text"
-                                  value={spec4Label}
-                                  onChange={e => setSpec4Label(e.target.value)}
-                                  className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
-                                />
-                                <input
-                                  type="text"
-                                  value={spec4Val}
-                                  onChange={e => setSpec4Val(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Story Narrative</label>
-                            <textarea
-                              rows={3}
-                              value={processSummary}
-                              onChange={e => setProcessSummary(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Guild Certification Tag</label>
-                            <input
-                              type="text"
-                              value={guildTag}
-                              onChange={e => setGuildTag(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 5. BESPOKE COMMISSIONS CONTROLS */}
-                      {studioEditSection === "bespoke" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Bespoke Architectural Commissions</span>
-                          
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Commission Section Heading</label>
-                            <input
-                              type="text"
-                              value={bespokeTitle}
-                              onChange={e => setBespokeTitle(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Lead Time</label>
-                              <input
-                                type="text"
-                                value={bespokeLeadTime}
-                                onChange={e => setBespokeLeadTime(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Minimum Budget</label>
-                              <input
-                                type="text"
-                                value={bespokeMinBudget}
-                                onChange={e => setBespokeMinBudget(e.target.value)}
-                                className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Milestone Escrow Terms Explanation</label>
-                            <textarea
-                              rows={2}
-                              value={bespokeTerms}
-                              onChange={e => setBespokeTerms(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-[#FAF8F5] border border-[#E7E4DF]">
-                            <div>
-                              <div className="font-mono text-xs font-bold text-[#141413]">Accepting Bespoke Commissions</div>
-                              <div className="font-sans text-[11px] text-[#716E68]">Displays \"Open for Commissions\" badge</div>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={bespokeAccepting}
-                              onChange={e => setBespokeAccepting(e.target.checked)}
-                              className="w-4 h-4 cursor-pointer accent-[#141413]"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 6. ABOUT & HERITAGE CONTROLS */}
-                      {studioEditSection === "about" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">About & Studio Heritage</span>
-                          
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artisan Lineage & Heritage Note</label>
-                            <textarea
-                              rows={3}
-                              value={craftHeritageNote}
-                              onChange={e => setCraftHeritageNote(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Visiting Policy (Scheduled via Atelier)</label>
-                            <input
-                              type="text"
-                              value={visitPolicyText}
-                              onChange={e => setVisitPolicyText(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Press, Biennales & Museum Mentions</label>
-                            <input
-                              type="text"
-                              value={pressMention}
-                              onChange={e => setPressMention(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 7. POLICIES & GUARANTEES */}
-                      {studioEditSection === "policies" && (
-                        <div className="space-y-4 animate-fade-in">
-                          <span className="font-mono text-xs uppercase text-[#C25E3E] font-bold block">Logistics & Buyer Guarantees</span>
-                          
-                          <div>
-                            <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Domestic Transit Insurance & Courier Policy</label>
-                            <textarea
-                              rows={2}
-                              value={shippingPolicyText}
-                              onChange={e => setShippingPolicyText(e.target.value)}
-                              className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
-                            />
-                          </div>
-
-                          <div className="p-3 bg-[#FAF8F5] border border-[#E7E4DF] space-y-2 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono text-xs font-bold text-[#141413]">Insured Fine Art Logistics</span>
-                              <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300">Active</span>
-                            </div>
-                            <p className="font-sans text-[11px] text-[#56423d]">
-                              Integrated Blue Dart Apex & Delhivery door-to-door insurance with transit damage protection.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">palette</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Theme
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight">
+                        Background color, image framing, and accents
+                      </p>
                     </div>
                   </div>
-                )}
-              </div>
-
-              {/* SECTION 3: STYLE */}
-              <div className="border-b border-[#E7E4DF]">
-                <button 
-                  onClick={() => setExpandedSections(prev => ({...prev, styles: !prev.styles}))}
-                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px]">palette</span>
-                    <span>Style</span>
-                  </div>
-                  <span className="material-symbols-outlined text-sm">{expandedSections.styles ? "expand_less" : "expand_more"}</span>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.theme ? 'expand_less' : 'expand_more'}
+                  </span>
                 </button>
-                {expandedSections.styles && (
-                  <div className="pb-4 px-4">
+                {expandedSections.theme && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white">
                     <div className="space-y-6">
                       <div>
                         <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">01 / Mineral Grounds</span>
@@ -2625,45 +2654,9 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                         </div>
                       </div>
 
-                      {/* Typography Pairings */}
-                      <div className="border-t border-[#E7E4DF] pt-4">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">02 / Typography</span>
-                        <h3 className="font-serif text-lg text-[#141413]">Indian Fine Art Type Pairings (7 Styles)</h3>
-
-                        <div className="space-y-2 mt-3">
-                          {[
-                            { id: "cormorant", name: "Editorial Gallery (Cormorant)", sample: "Tectonic Monograph", desc: "Classical italic serif with poetic craft authority" },
-                            { id: "playfair", name: "Heritage Museum (Playfair)", sample: "Indian Heritage Arts", desc: "Bold display serif celebrating historical weights" },
-                            { id: "cinzel", name: "Architectural Stone (Cinzel)", sample: "TEMPLE MONUMENTAL", desc: "Carved stone serif inspired by ancient inscriptions" },
-                            { id: "syne", name: "Contemporary Avant-Garde (Syne)", sample: "MODERN ATELIER", desc: "Crisp architectural sans-serif for clean geometry" },
-                            { id: "space", name: "Craft & Spec Telemetry (Space)", sample: "1280°C VITRIFIED", desc: "Monospace studio spec sheet font" },
-                            { id: "baskerville", name: "Scholarly Classic (Baskerville)", sample: "Sovereign Archives", desc: "Time-honored fine printing tradition" },
-                            { id: "bodoni", name: "Haute Atelier Luxury (Bodoni)", sample: "ATELIER MONOGRAPH", desc: "High-contrast luxury headlines" },
-                          ].map(t => (
-                            <div
-                              key={t.id}
-                              onClick={() => {
-                                setTypography(t.id as any);
-                                showToast(`Typography set to ${t.name}`);
-                              }}
-                              className={`p-2.5 border transition-all cursor-pointer ${
-                                typography === t.id ? "border-[#141413] ring-1 ring-black bg-[#FAF8F5]" : "border-[#E7E4DF] bg-white hover:border-[#141413]/40"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono text-xs font-bold text-[#141413]">{t.name}</span>
-                                {typography === t.id && <span className="font-mono text-[10px] text-[#C25E3E] font-semibold">Active</span>}
-                              </div>
-                              <div className="text-sm text-[#141413] mt-1 font-serif">{t.sample}</div>
-                              <p className="font-sans text-[10px] text-[#716E68] mt-0.5">{t.desc}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* Image Aspect Ratio Options */}
                       <div className="border-t border-[#E7E4DF] pt-4">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">03 / Aspect Ratio</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">02 / Aspect Ratio</span>
                         <h3 className="font-serif text-lg text-[#141413]">Artwork Image Framing (6 Formats)</h3>
 
                         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
@@ -2694,7 +2687,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
                       {/* Card Border & Matting Style */}
                       <div className="border-t border-[#E7E4DF] pt-4">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">04 / Border & Elevation</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">03 / Border & Elevation</span>
                         <h3 className="font-serif text-lg text-[#141413]">Matting & Framing Architecture</h3>
 
                         <div className="grid grid-cols-3 gap-2 mt-3">
@@ -2724,7 +2717,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
                       {/* Accent Color Palettes */}
                       <div className="border-t border-[#E7E4DF] pt-4">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">05 / Accents</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">04 / Accents</span>
                         <h3 className="font-serif text-lg text-[#141413]">Heritage Mineral Accents</h3>
 
                         <div className="flex items-center gap-2.5 mt-3 flex-wrap">
@@ -2760,20 +2753,1002 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                 )}
               </div>
 
-              {/* SECTION 4: SECURITY */}
-              <div className="border-b border-[#E7E4DF]">
+              {/* SECTION: TYPOGRAPHY */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
                 <button 
-                  onClick={() => setExpandedSections(prev => ({...prev, security: !prev.security}))}
-                  className="w-full py-4 px-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-[#141413] hover:text-[#C25E3E] transition-colors"
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('typography')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px]">security</span>
-                    <span>Security</span>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 font-serif font-bold text-[#A25838] leading-none select-none">
+                      <span className="text-[15px]">T</span><span className="text-[11px] -ml-0.5">T</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Typography
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight">
+                        Choose the font style for your portfolio
+                      </p>
+                    </div>
                   </div>
-                  <span className="material-symbols-outlined text-sm">{expandedSections.security ? "expand_less" : "expand_more"}</span>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.typography ? 'expand_less' : 'expand_more'}
+                  </span>
                 </button>
-                {expandedSections.security && (
-                  <div className="pb-4 px-4">
+                {expandedSections.typography && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white">
+                    <div className="space-y-4">
+                      <div className="border-b border-[#E7E4DF] pb-3">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Artisanal Letterforms</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Indian Fine Art Type Pairings (7 Styles)</h3>
+                        <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                          Selected typefaces paired for Indian gallery aesthetics, fine press publications, and museum catalogues.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        {[
+                          { id: "cormorant", name: "Editorial Gallery (Cormorant)", sample: "Tectonic Monograph", desc: "Classical italic serif with poetic craft authority" },
+                          { id: "playfair", name: "Heritage Museum (Playfair)", sample: "Indian Heritage Arts", desc: "Bold display serif celebrating historical weights" },
+                          { id: "cinzel", name: "Architectural Stone (Cinzel)", sample: "TEMPLE MONUMENTAL", desc: "Carved stone serif inspired by ancient inscriptions" },
+                          { id: "syne", name: "Contemporary Avant-Garde (Syne)", sample: "MODERN ATELIER", desc: "Crisp architectural sans-serif for clean geometry" },
+                          { id: "space", name: "Craft & Spec Telemetry (Space)", sample: "1280°C VITRIFIED", desc: "Monospace studio spec sheet font" },
+                          { id: "baskerville", name: "Scholarly Classic (Baskerville)", sample: "Sovereign Archives", desc: "Time-honored fine printing tradition" },
+                          { id: "bodoni", name: "Haute Atelier Luxury (Bodoni)", sample: "ATELIER MONOGRAPH", desc: "High-contrast luxury headlines" },
+                        ].map(t => (
+                          <div
+                            key={t.id}
+                            onClick={() => {
+                              setTypography(t.id as any);
+                              showToast(`Typography set to ${t.name}`);
+                            }}
+                            className={`p-3 border transition-all cursor-pointer ${
+                              typography === t.id ? "border-[#141413] ring-1 ring-black bg-[#FAF8F5]" : "border-[#E7E4DF] bg-white hover:border-[#141413]/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-xs font-bold text-[#141413]">{t.name}</span>
+                              {typography === t.id && <span className="font-mono text-[10px] text-[#C25E3E] font-semibold">Active</span>}
+                            </div>
+                            <div className="text-sm text-[#141413] mt-1 font-serif">{t.sample}</div>
+                            <p className="font-sans text-[10px] text-[#716E68] mt-0.5">{t.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+
+              {/* SECTION: DASHBOARD ARTWORKS (MINIMAL & COMPACT) */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('dashboardArtworks')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Dashboard Artworks
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Add or remove studio artworks from portfolio
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.dashboardArtworks ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.dashboardArtworks && (
+                  <div className="px-4 pb-4 pt-1 border-t border-[#F2EFE9] bg-white space-y-3">
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-300 font-medium">
+                        {portfolioArtworkIds.length}/{studioArtworks.length} in Portfolio
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddDashboardArtModalOpen(true)}
+                          className="px-2.5 py-1 bg-[#141413] text-white text-[10px] font-mono uppercase tracking-wider flex items-center gap-1 cursor-pointer font-medium hover:bg-[#C25E3E]"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">add</span>
+                          <span>Add</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleIncludeAllDashboardArtworks}
+                          className="px-2 py-1 bg-white border border-[#D8D4CE] text-[#141413] text-[10px] font-mono uppercase cursor-pointer hover:bg-[#FAF8F5]"
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResetPortfolioArtworks}
+                          className="px-2 py-1 bg-white border border-[#D8D4CE] text-[#716E68] text-[10px] font-mono uppercase cursor-pointer hover:bg-[#FAF8F5]"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Compact Artworks List */}
+                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                      {studioArtworks.map(art => {
+                        const isInPortfolio = portfolioArtworkIds.includes(art.id);
+                        return (
+                          <div
+                            key={art.id}
+                            className={`p-2 border rounded-xs transition-all flex items-center justify-between gap-2 text-xs ${
+                              isInPortfolio ? 'bg-[#FAF8F5] border-[#141413]/30' : 'bg-white border-[#E7E4DF] opacity-70'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img
+                                src={art.image}
+                                alt={art.title}
+                                className="w-10 h-10 object-cover border border-black/10 shrink-0 cursor-pointer"
+                                onClick={() => setZoomedImage({ url: art.image, title: art.title, specs: art.medium })}
+                              />
+                              <div className="min-w-0">
+                                <h5 className="font-serif font-bold text-xs text-[#141413] truncate">{art.title}</h5>
+                                <div className="font-mono text-[9px] text-[#716E68] truncate">{art.price} · {art.discipline}</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleArtworkInPortfolio(art.id)}
+                                className={`px-2 py-1 text-[10px] font-mono uppercase tracking-wider flex items-center gap-0.5 cursor-pointer ${
+                                  isInPortfolio
+                                    ? 'bg-emerald-700 text-white font-medium'
+                                    : 'bg-white text-[#141413] border border-[#141413]'
+                                }`}
+                                title={isInPortfolio ? 'Remove from portfolio' : 'Add to portfolio'}
+                              >
+                                <span className="material-symbols-outlined text-[12px]">
+                                  {isInPortfolio ? 'check' : 'add'}
+                                </span>
+                                <span>{isInPortfolio ? 'Active' : 'Add'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDashboardArtwork(art.id, art.title)}
+                                className="p-1 text-[#716E68] hover:text-red-700 cursor-pointer"
+                                title="Delete"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: ARTIST & STUDIO IDENTITY */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('identity')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">badge</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Identity & Lineage
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Brand name, artist name, handle, location & Devanagari
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.identity ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.identity && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Brand Identity</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Artist & Studio Moniker</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Configure how your studio name, artisan heritage, and geographic cluster appear.
+                      </p>
+                    </div>
+
+                    {/* Discipline Quick Preset Switcher */}
+                    <div className="flex items-center justify-between bg-[#FAF8F5] p-2.5 border border-[#E7E4DF] text-xs">
+                      <span className="font-mono text-[10px] text-[#716E68] uppercase font-semibold">Artisan Lineage Preset:</span>
+                      <div className="flex items-center gap-1 font-mono text-[11px]">
+                        <button type="button" onClick={() => handleSelectArtistPreset("aarav")} className={`px-2.5 py-1 cursor-pointer transition-colors ${selectedArtistId === "aarav" ? "bg-[#141413] text-white font-medium" : "text-[#716E68] hover:text-[#141413]"}`}>Potter (Aarav)</button>
+                        <button type="button" onClick={() => handleSelectArtistPreset("ananya")} className={`px-2.5 py-1 cursor-pointer transition-colors ${selectedArtistId === "ananya" ? "bg-[#141413] text-white font-medium" : "text-[#716E68] hover:text-[#141413]"}`}>Weaver (Ananya)</button>
+                        <button type="button" onClick={() => handleSelectArtistPreset("devendra")} className={`px-2.5 py-1 cursor-pointer transition-colors ${selectedArtistId === "devendra" ? "bg-[#141413] text-white font-medium" : "text-[#716E68] hover:text-[#141413]"}`}>Sculptor (Devendra)</button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Brand Name</label>
+                      <input
+                        type="text"
+                        value={customStudioName}
+                        onChange={e => setCustomStudioName(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artist / Founder Name</label>
+                      <input
+                        type="text"
+                        value={customArtistName}
+                        onChange={e => setCustomArtistName(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Public Handle</label>
+                      <div className="flex items-center">
+                        <span className="px-2.5 py-2 bg-[#FAF8F5] border border-r-0 border-[#E7E4DF] text-xs font-mono text-[#716E68]">
+                          atelier.art/@
+                        </span>
+                        <input
+                          type="text"
+                          value={customHandle}
+                          onChange={e => setCustomHandle(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413] focus:outline-none focus:border-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Heritage Hindi Devanagari Title</label>
+                      <input
+                        type="text"
+                        value={customHindiTitle}
+                        onChange={e => setCustomHindiTitle(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Craft Discipline & Medium</label>
+                      <input
+                        type="text"
+                        value={customDiscipline}
+                        onChange={e => setCustomDiscipline(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Geographic Cluster</label>
+                      <input
+                        type="text"
+                        value={customLocation}
+                        onChange={e => setCustomLocation(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 4: HERO & STATEMENT */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('hero')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">title</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Hero & Statement
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Hero headline, mission statement & layout variant
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.hero ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.hero && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Opening Impact</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Hero Section Presentation</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Craft an authoritative opening statement for visiting collectors and curators.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Craft Statement / Headline</label>
+                      <textarea
+                        rows={2}
+                        value={customHeadline}
+                        onChange={e => setCustomHeadline(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Practice Philosophy / Subheadline</label>
+                      <textarea
+                        rows={3}
+                        value={customSubheadline}
+                        onChange={e => setCustomSubheadline(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero CTA Label</label>
+                        <input
+                          type="text"
+                          value={heroCtaLabel}
+                          onChange={e => setHeroCtaLabel(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hero Layout Variant</label>
+                        <select
+                          value={heroLayoutVariant}
+                          onChange={e => setHeroLayoutVariant(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                        >
+                          <option value="monograph">Centered Monograph</option>
+                          <option value="split">Split Studio Photo</option>
+                          <option value="architectural">Architectural Headline</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 5: FEATURED MASTERWORK */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('masterwork')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">star</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Featured Masterwork
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Centerpiece spotlight, 4-angle imagery & provenance
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.masterwork ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.masterwork && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-[#C25E3E] font-semibold block">Centerpiece</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Signature Masterwork Spotlight</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Multi-angle inspection, technical firing or loom specifications, and pricing for your premier piece.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Masterwork Artwork Title</label>
+                      <input
+                        type="text"
+                        value={masterworkTitle}
+                        onChange={e => setMasterworkTitle(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Hindi Calligraphy Name</label>
+                        <input
+                          type="text"
+                          value={masterworkHindiName}
+                          onChange={e => setMasterworkHindiName(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Price (₹ INR)</label>
+                        <input
+                          type="number"
+                          value={masterworkPrice}
+                          onChange={e => setMasterworkPrice(parseInt(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Material & Reduction Specs</label>
+                      <input
+                        type="text"
+                        value={masterworkSpecs}
+                        onChange={e => setMasterworkSpecs(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Dimensions</label>
+                        <input
+                          type="text"
+                          value={masterworkDims}
+                          onChange={e => setMasterworkDims(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Net Weight</label>
+                        <input
+                          type="text"
+                          value={masterworkWeight}
+                          onChange={e => setMasterworkWeight(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Firing Cycle / Loom Time</label>
+                        <input
+                          type="text"
+                          value={masterworkFiring}
+                          onChange={e => setMasterworkFiring(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Provenance Record</label>
+                        <input
+                          type="text"
+                          value={masterworkProvenance}
+                          onChange={e => setMasterworkProvenance(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 4 Image URLs */}
+                    <div className="border-t border-[#E7E4DF] pt-3 space-y-2">
+                      <label className="block font-mono text-[10px] uppercase text-[#141413] font-bold">4-Angle Masterwork Imagery</label>
+                      <div>
+                        <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 1: Front Elevation URL</span>
+                        <input
+                          type="text"
+                          value={masterworkImgFront}
+                          onChange={e => setMasterworkImgFront(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 2: Micro-Texture URL</span>
+                        <input
+                          type="text"
+                          value={masterworkImgTexture}
+                          onChange={e => setMasterworkImgTexture(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 3: Silhouette Profile URL</span>
+                        <input
+                          type="text"
+                          value={masterworkImgProfile}
+                          onChange={e => setMasterworkImgProfile(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-[#716E68] uppercase block">Angle 4: Spatial Context Living Space URL</span>
+                        <input
+                          type="text"
+                          value={masterworkImgSpatial}
+                          onChange={e => setMasterworkImgSpatial(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-[#E7E4DF] text-[11px] font-mono text-[#141413]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 6: PORTFOLIO CATALOG WORKS */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('catalog')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">grid_view</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Portfolio Catalog Works
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Customize titles, pricing & grid display for active works ({artworksList.length})
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.catalog ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.catalog && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
+                      <div>
+                        <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold block">Gallery Layout</span>
+                        <h3 className="font-serif text-lg text-[#141413]">Documented Catalog Works</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddArtworkOpen(true)}
+                        className="px-2.5 py-1 bg-[#141413] text-white text-[10px] font-mono uppercase flex items-center gap-1 cursor-pointer hover:bg-[#C25E3E]"
+                      >
+                        <span className="material-symbols-outlined text-[13px]">add</span>
+                        <span>Add Custom Work</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Section Title</label>
+                        <input
+                          type="text"
+                          value={galleryTitle}
+                          onChange={e => setGalleryTitle(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Catalog Subtitle</label>
+                        <input
+                          type="text"
+                          value={gallerySubtitle}
+                          onChange={e => setGallerySubtitle(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "3-col", label: "3 Columns" },
+                        { id: "2-col", label: "2 Columns" },
+                        { id: "masonry", label: "Masonry Flow" },
+                      ].map(l => (
+                        <button
+                          key={l.id}
+                          type="button"
+                          onClick={() => setGalleryLayout(l.id as any)}
+                          className={`py-1.5 text-center font-mono text-[10px] uppercase border cursor-pointer ${
+                            galleryLayout === l.id ? "bg-[#141413] text-white border-black font-semibold" : "bg-white text-[#716E68] border-[#E7E4DF]"
+                          }`}
+                        >
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Items List with Edit/Delete */}
+                    <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase text-[#716E68] font-semibold">
+                          Active Pieces in Live Portfolio ({artworksList.length})
+                        </span>
+                        <span className="font-sans text-[11px] text-[#716E68]">
+                          Manage via Dashboard Artworks tab
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {artworksList.map(item => (
+                          <div key={item.id} className="p-2 border border-[#E7E4DF] bg-[#FAF8F5] flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img src={item.img} alt={item.title} className="w-8 h-8 object-cover border border-black/10 shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-serif font-bold text-[#141413] truncate">{item.title}</div>
+                                <div className="font-mono text-[10px] text-[#716E68]">₹{item.price.toLocaleString("en-IN")} · {item.category}</div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveArtwork(item.id)}
+                              className="text-red-700 hover:text-red-900 p-1 cursor-pointer shrink-0"
+                              title="Remove from portfolio"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 7: CRAFT & KILN TELEMETRY (PROCESS) */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('process')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">science</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Craft & Kiln Telemetry
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Raw material sourcing, kiln firing cycles & telemetry
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.process ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.process && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold block">Materiality</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Kiln, Loom & Craft Telemetry</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Document the mineral sourcing, high-temperature firing, and artisan provenance.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Section Title</label>
+                        <input
+                          type="text"
+                          value={processTitle}
+                          onChange={e => setProcessTitle(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Subtitle</label>
+                        <input
+                          type="text"
+                          value={processSubtitle}
+                          onChange={e => setProcessSubtitle(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 4 Telemetry Spec Cards */}
+                    <div className="space-y-2 border-t border-[#E7E4DF] pt-3">
+                      <span className="font-mono text-[10px] uppercase text-[#141413] font-bold block">4 Craft Telemetry Metrics</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 1: Material Sourcing</span>
+                          <input
+                            type="text"
+                            value={spec1Label}
+                            onChange={e => setSpec1Label(e.target.value)}
+                            className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                          />
+                          <input
+                            type="text"
+                            value={spec1Val}
+                            onChange={e => setSpec1Val(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                          />
+                        </div>
+                        <div>
+                          <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 2: Temperature / Cycle</span>
+                          <input
+                            type="text"
+                            value={spec2Label}
+                            onChange={e => setSpec2Label(e.target.value)}
+                            className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                          />
+                          <input
+                            type="text"
+                            value={spec2Val}
+                            onChange={e => setSpec2Val(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                          />
+                        </div>
+                        <div>
+                          <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 3: Fuel / Vat</span>
+                          <input
+                            type="text"
+                            value={spec3Label}
+                            onChange={e => setSpec3Label(e.target.value)}
+                            className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                          />
+                          <input
+                            type="text"
+                            value={spec3Val}
+                            onChange={e => setSpec3Val(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                          />
+                        </div>
+                        <div>
+                          <span className="font-mono text-[9px] uppercase text-[#716E68] block">Metric 4: Escrow Protection</span>
+                          <input
+                            type="text"
+                            value={spec4Label}
+                            onChange={e => setSpec4Label(e.target.value)}
+                            className="w-full px-2 py-1 border border-[#E7E4DF] text-[10px] font-mono text-[#716E68] mb-1"
+                          />
+                          <input
+                            type="text"
+                            value={spec4Val}
+                            onChange={e => setSpec4Val(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Process Story Narrative</label>
+                      <textarea
+                        rows={3}
+                        value={processSummary}
+                        onChange={e => setProcessSummary(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Guild Certification Tag</label>
+                      <input
+                        type="text"
+                        value={guildTag}
+                        onChange={e => setGuildTag(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 8: BESPOKE COMMISSIONS */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('bespoke')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">handshake</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Bespoke Commissions
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Commission terms, lead times, minimum budgets & inquiries
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.bespoke ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.bespoke && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold block">Private Patronage</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Architectural & Custom Commissions</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Enable patrons, architects, and galleries to inquire on site-specific custom commissions.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Commission Section Heading</label>
+                      <input
+                        type="text"
+                        value={bespokeTitle}
+                        onChange={e => setBespokeTitle(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Lead Time</label>
+                        <input
+                          type="text"
+                          value={bespokeLeadTime}
+                          onChange={e => setBespokeLeadTime(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Minimum Budget</label>
+                        <input
+                          type="text"
+                          value={bespokeMinBudget}
+                          onChange={e => setBespokeMinBudget(e.target.value)}
+                          className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Milestone Escrow Terms Explanation</label>
+                      <textarea
+                        rows={2}
+                        value={bespokeTerms}
+                        onChange={e => setBespokeTerms(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[#FAF8F5] border border-[#E7E4DF]">
+                      <div>
+                        <div className="font-mono text-xs font-bold text-[#141413]">Accepting Bespoke Commissions</div>
+                        <div className="font-sans text-[11px] text-[#716E68]">Displays "Open for Commissions" badge on portfolio</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={bespokeAccepting}
+                        onChange={e => setBespokeAccepting(e.target.checked)}
+                        className="w-4 h-4 cursor-pointer accent-[#141413]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 9: ABOUT & STUDIO HERITAGE */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('about')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">history_edu</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        About & Heritage
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight truncate">
+                        Artisan lineage, studio photography & philosophy
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.about ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.about && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white space-y-4">
+                    <div className="border-b border-[#E7E4DF] pb-3">
+                      <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold block">Heritage</span>
+                      <h3 className="font-serif text-lg text-[#141413]">Studio Story & Heritage Note</h3>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5">
+                        Share your craft lineage, regional cluster history, and studio appointment terms.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artisan Lineage & Heritage Note</label>
+                      <textarea
+                        rows={3}
+                        value={craftHeritageNote}
+                        onChange={e => setCraftHeritageNote(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Studio Visiting Policy (Scheduled via Atelier)</label>
+                      <input
+                        type="text"
+                        value={visitPolicyText}
+                        onChange={e => setVisitPolicyText(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Press, Biennales & Museum Mentions</label>
+                      <input
+                        type="text"
+                        value={pressMention}
+                        onChange={e => setPressMention(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] focus:outline-none focus:border-[#141413]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Domestic Transit Insurance & Courier Policy</label>
+                      <textarea
+                        rows={2}
+                        value={shippingPolicyText}
+                        onChange={e => setShippingPolicyText(e.target.value)}
+                        className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+              {/* SECTION 6: CONTACT & PRIVACY */}
+              <div className="border-b border-[#E7E4DF] last:border-b-0">
+                <button 
+                  type="button"
+                  onClick={() => toggleCollapsibleSection('contact')}
+                  className="w-full py-4 px-5 flex items-center justify-between text-left transition-colors hover:bg-[#FAF8F5] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0 text-[#A25838]">
+                      <span className="material-symbols-outlined text-[20px]">shield</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-serif text-[15px] font-semibold text-[#141413] group-hover:text-[#A25838] transition-colors leading-tight">
+                        Contact & Privacy
+                      </h4>
+                      <p className="font-sans text-xs text-[#716E68] mt-0.5 leading-tight">
+                        Control how collectors reach you safely
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#8E8B85] text-[20px] shrink-0 ml-2 transition-transform duration-200">
+                    {expandedSections.contact ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {expandedSections.contact && (
+                  <div className="px-5 pb-5 pt-1 border-t border-[#F2EFE9] bg-white">
                     <div className="space-y-6">
                       {/* Pricing Mode Selector */}
                       <div className="bg-[#FAF8F5] p-3.5 border border-[#E7E4DF] space-y-2">
@@ -2802,44 +3777,9 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                           ))}
                         </div>
                       </div>
-                      
-                      {/* GROUP 1: SECTIONS (Matching Attached Image Style) */}
-                      <div className="space-y-2">
-                        <div className="font-serif text-sm font-bold uppercase tracking-wider text-[#141413] border-b border-[#E7E4DF] pb-2">
-                          SECTIONS
-                        </div>
-                        {[
-                          { key: "showHeroSection" as keyof FeatureToggles, label: "Hero" },
-                          { key: "showFeaturedWorkSection" as keyof FeatureToggles, label: "Featured Work" },
-                          { key: "showCollectionsSection" as keyof FeatureToggles, label: "Collections" },
-                          { key: "showAboutSection" as keyof FeatureToggles, label: "About" },
-                          { key: "showCommissionsSection" as keyof FeatureToggles, label: "Commissions" },
-                          { key: "showContactSection" as keyof FeatureToggles, label: "Contact" },
-                        ].map(sec => {
-                          const enabled = toggles[sec.key];
-                          return (
-                            <div
-                              key={sec.key}
-                              onClick={() => handleToggle(sec.key)}
-                              className="p-3 bg-[#FAF8F5] border-b border-[#E7E4DF] flex items-center justify-between gap-3 select-none cursor-pointer hover:bg-white transition-colors"
-                            >
-                              <span className="font-serif text-sm font-medium text-[#141413]">{sec.label}</span>
-                              <div
-                                className="w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0"
-                                style={{ backgroundColor: enabled ? accentColor : "#E5E2DC" }}
-                              >
-                                <div
-                                  className="bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform"
-                                  style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
 
-                      {/* GROUP 2: 7 IMPORTANT SECURITY & PROTECTION FEATURES */}
-                      <div className="space-y-2 pt-2">
+                      {/* SECURITY & PROTECTION SUITE */}
+                      <div className="space-y-2 pt-1">
                         <div className="font-serif text-sm font-bold uppercase tracking-wider text-[#141413] border-b border-[#E7E4DF] pb-2 flex items-center justify-between">
                           <span>SECURITY & PROTECTION SUITE</span>
                           <span className="font-mono text-[10px] text-[#C25E3E] bg-[#FAF8F5] px-2 py-0.5 border border-[#E7E4DF]">7 Active Guards</span>
@@ -2869,7 +3809,7 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
                                 style={{ backgroundColor: enabled ? accentColor : "#E5E2DC" }}
                               >
                                 <div
-                                  className="bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform"
+                                  className="bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform"
                                   style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
                                 />
                               </div>
@@ -2888,8 +3828,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
       {/* INTERACTIVE MODAL 1: ATELIER IN-APP INQUIRY DRAWER */}
       {activeInquiryArtwork && (
-        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
               <div>
                 <span className="font-mono text-[10px] uppercase text-[#C25E3E]">In-App Studio Messenger</span>
@@ -2982,8 +3922,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
       {/* INTERACTIVE MODAL 2: CERTIFICATE OF AUTHENTICITY (COA) */}
       {coaModalArtwork && (
-        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#FAF8F5] border-2 border-[#141413] max-w-lg w-full p-8 shadow-2xl space-y-6 relative">
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-[#FAF8F5] border-2 border-[#141413] max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-8 shadow-2xl space-y-6 relative">
             <button
               onClick={() => setCoaModalArtwork(null)}
               className="absolute top-4 right-4 text-[#716E68] hover:text-[#141413] cursor-pointer"
@@ -3086,8 +4026,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
       {/* INTERACTIVE MODAL 4: BESPOKE COMMISSION INTAKE */}
       {isBespokeModalOpen && (
-        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
               <div>
                 <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Atelier Bespoke Portal</span>
@@ -3197,8 +4137,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
       {/* INTERACTIVE MODAL 5: ADD NEW ARTWORK TO GALLERY */}
       {isAddArtworkOpen && (
-        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-[#141413]/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border border-[#E7E4DF] max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
               <div>
                 <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Studio Catalog Editor</span>
@@ -3321,8 +4261,8 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
 
       {/* INTERACTIVE MODAL 6: LOOKBOOK & EXHIBITION CATALOG EXPORT */}
       {isLookbookModalOpen && (
-        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border-2 border-[#141413] max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6">
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#141413] max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
               <div>
                 <span className="font-mono text-[10px] uppercase text-[#C25E3E]">Architectural Lookbook & Catalog</span>
@@ -3381,98 +4321,182 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
         </div>
       )}
 
-      {/* INTERACTIVE MODAL 7: WHAT MORE CAN WE DO ROADMAP & INNOVATIONS */}
-      {isRoadmapOpen && (
-        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border-2 border-[#141413] max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-2xl space-y-6">
+      {/* INTERACTIVE MODAL 7: ADD NEW ARTWORK TO STUDIO DASHBOARD */}
+      {isAddDashboardArtModalOpen && (
+        <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#141413] max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#E7E4DF] pb-3">
               <div>
-                <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold">Product Strategy & Future Upgrades</span>
-                <h3 className="font-serif text-2xl text-[#141413]">10 Game-Changing Features for Portfolio Customiser</h3>
+                <span className="font-mono text-[10px] uppercase text-[#C25E3E] font-bold">Studio Dashboard Inventory</span>
+                <h3 className="font-serif text-2xl text-[#141413]">Add New Studio Artwork</h3>
               </div>
               <button
-                onClick={() => setIsRoadmapOpen(false)}
+                type="button"
+                onClick={() => setIsAddDashboardArtModalOpen(false)}
                 className="text-[#716E68] hover:text-[#141413] cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
 
-            <p className="font-sans text-xs text-[#56423d] leading-relaxed">
-              These suggestions highlight high-leverage innovations that can make Atelier’s Portfolio Customiser the undisputed gold standard for small Indian craftspeople, independent studios, and global fine art collectors:
+            <p className="font-sans text-xs text-[#56423d]">
+              This piece will be saved directly into your <strong>Studio Dashboard Original Artworks</strong> and automatically toggled into your active portfolio.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                {
-                  num: '01',
-                  title: 'Live AR / Spatial "View in Room" Simulator',
-                  desc: 'Allow collectors using mobile devices to project the exact dimensions of a ceramic urn or handloom tapestry onto their living room walls with accurate scale indicators.'
-                },
-                {
-                  num: '02',
-                  title: 'Private VIP Collector Vault (Password / Link Gate)',
-                  desc: 'Permit creators to upload new kiln batches 48 hours prior to public launch, generating private password-protected links for trusted architects and patron circles.'
-                },
-                {
-                  num: '03',
-                  title: 'CAD / DWG & High-Res Swatch Kit for Architects',
-                  desc: 'Luxury interior designers specifying pieces for hotels and villas can download 3D CAD models and high-res raw texture swatches directly from the portfolio.'
-                },
-                {
-                  num: '04',
-                  title: 'Multi-Currency International Checkout (₹ INR / $ USD / € EUR)',
-                  desc: 'Automate live real-time currency conversion with international DHL insured courier crating calculation and customs export documentation assist.'
-                },
-                {
-                  num: '05',
-                  title: 'Ambient Studio Soundscapes & Audio Commentary',
-                  desc: 'Integrate subtle ambient audio players (e.g., sound of the potter’s wheel or pit-loom clack) and 45-second voice notes from the master craftsman explaining a piece.'
-                },
-                {
-                  num: '06',
-                  title: 'Custom Domain Mapping (yourstudio.in / yourname.art)',
-                  desc: 'Allow creators to attach their personal custom domain with automatic SSL certificates while keeping all in-app messaging and 50% escrow checkouts fully mediated.'
-                },
-                {
-                  num: '07',
-                  title: 'Live Kiln Batch Countdown & Drop System',
-                  desc: 'Create anticipation for limited firings or monsoon textile drops with a live countdown timer: "Next Wood Firing Unloading: Friday 4:00 PM IST".'
-                },
-                {
-                  num: '08',
-                  title: 'One-Click Print Lookbook & Exhibition Dossier',
-                  desc: 'Auto-generate clean, high-resolution A4 and Letter PDF catalogs with QR codes linking directly to Atelier Escrow checkout for gallery booths and art fairs.'
-                },
-                {
-                  num: '09',
-                  title: 'AI Materiality & Craft Storyteller from Studio Photos',
-                  desc: 'Creators upload 3 kiln/workshop photos; the system automatically draft technical specs (clay origin, firing cones, pit-loom thread counts) and poetic monographs.'
-                },
-                {
-                  num: '10',
-                  title: 'Collective Guild & Master-Apprentice Dual Sign-off',
-                  desc: 'Allow cooperative craft clusters (like Khurja Potteries or Bastar Bell Metal Guild) to co-curate portfolios where senior master artisans digitally co-sign certificates.'
-                }
-              ].map(item => (
-                <div key={item.num} className="p-3.5 border border-[#E7E4DF] bg-[#FAF8F5] space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-[#C25E3E] font-bold">{item.num}</span>
-                    <h4 className="font-serif text-sm font-bold text-[#141413]">{item.title}</h4>
-                  </div>
-                  <p className="font-sans text-xs text-[#56423d] leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
+            <form onSubmit={handleCreateDashboardArtwork} className="space-y-3.5">
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Artwork Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Jaipur Blue Glazed Ceremonial Platter"
+                  value={dashArtTitle}
+                  onChange={e => setDashArtTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-serif text-[#141413] focus:outline-none focus:border-[#141413]"
+                />
+              </div>
 
-            <div className="flex items-center justify-end pt-2 border-t border-[#E7E4DF]">
-              <button
-                onClick={() => setIsRoadmapOpen(false)}
-                className="px-5 py-2 bg-[#141413] text-white font-mono text-xs uppercase cursor-pointer shadow-xs font-semibold"
-              >
-                Got It
-              </button>
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Discipline *</label>
+                  <select
+                    value={dashArtDiscipline}
+                    onChange={e => setDashArtDiscipline(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                  >
+                    <option value="Clay & Terracotta">Clay & Terracotta</option>
+                    <option value="Metal & Bronze">Metal & Bronze</option>
+                    <option value="Wash Painting">Wash Painting</option>
+                    <option value="Heritage Textiles">Heritage Textiles</option>
+                    <option value="Woodcraft">Woodcraft</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Price (₹ INR) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ₹22,000"
+                    value={dashArtPrice}
+                    onChange={e => setDashArtPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Medium & Natural Pigments</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ground quartz and natural copper cobalt reduction slip"
+                  value={dashArtMedium}
+                  onChange={e => setDashArtMedium(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Dimensions</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 40 × 40 × 6 cm"
+                    value={dashArtDimensions}
+                    onChange={e => setDashArtDimensions(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Status</label>
+                  <select
+                    value={dashArtStatus}
+                    onChange={e => setDashArtStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413] bg-white"
+                  >
+                    <option value="Available">Available for Purchase</option>
+                    <option value="Reserved">Reserved by Collector</option>
+                    <option value="Sold">Sold / In Archive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Collection / Series Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Neel: Jaipur Cobalt & Copper"
+                  value={dashArtCollection}
+                  onChange={e => setDashArtCollection(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-mono text-[10px] uppercase text-[#716E68]">Photograph URL</label>
+                  <span className="font-mono text-[9px] text-[#C25E3E]">Or pick a curated sample below:</span>
+                </div>
+                <input
+                  type="text"
+                  value={dashArtImage}
+                  onChange={e => setDashArtImage(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-mono text-[#141413] mb-2"
+                />
+                
+                {/* Image sample presets */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { label: 'Ceramics', url: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80' },
+                    { label: 'Terracotta', url: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80' },
+                    { label: 'Bronze', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpcvJIiJqG-61uu2eZzkd-p7joH3nu1pR4OJJIV9YgWhOwLv0T9bJ_qMFiilDALU0uE2Y8-C-rxDm5JGipt7B7qGYcIPO4N7Z0hExdku7JA3S5PVs3yWnBt6mi7Odbpif0cz_LzIuGf4uh5wlfumfy-HCiZbITrze-heFJtDNuh0u-SkCaKN2_Z-rp4Y5eSxNAz9czuVNVEzKMBbIeVzaHpn1exfY1yH_tyVizctSQFJ0yPB9dSyA7w' },
+                    { label: 'Textile', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBtbRtqiIwj_7gW7_R2Dfcv-Ajybri2Wzww23lFMSPT2D2qv36SPptttwuK13Ow8aQHKZFmU7K9YZBb3O0jiLTePLEd6PgePbcxIddAuLMel87nozygj1_RnjYFG0QHx5pSFFrvG1ht-vwmWFjj70S0OHaBCOeBNa_ML0JQxYuL8RmiHJT2lF_Uv6fhFj21Q93VKp_wIMOOJ0wgydcLU3HS6qxwGpfY38XAtv1t6ZcQAk7JY2DBSqkoTg' },
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setDashArtImage(preset.url)}
+                      className={`p-1 border text-center transition-all cursor-pointer ${
+                        dashArtImage === preset.url ? 'border-[#141413] bg-[#FAF8F5] ring-1 ring-black' : 'border-[#E7E4DF] hover:border-black'
+                      }`}
+                    >
+                      <img src={preset.url} alt={preset.label} className="w-full h-8 object-cover" />
+                      <span className="font-mono text-[9px] text-[#716E68] block mt-0.5">{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] uppercase text-[#716E68] mb-1">Craft Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Reduction wood-fired for 48 hours at Khurja pottery cluster."
+                  value={dashArtNotes}
+                  onChange={e => setDashArtNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E7E4DF] text-xs font-sans text-[#141413]"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-[#E7E4DF]">
+                <button
+                  type="button"
+                  onClick={() => setIsAddDashboardArtModalOpen(false)}
+                  className="px-4 py-2 border border-[#E7E4DF] text-xs font-mono text-[#716E68]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ backgroundColor: accentColor }}
+                  className="px-5 py-2 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[15px]">add</span>
+                  <span>Add to Studio & Portfolio</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
