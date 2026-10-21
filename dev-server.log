@@ -1,0 +1,1442 @@
+
+> my-next-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.4.0 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.154.82.102:3000
+- Environments: .env.local
+✓ Ready in 882ms
+✓ Running next.config.ts took 61ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+- Cache Components enabled
+- Partial Prefetching enabled
+- Experiments (use with caution):
+  ✓ agentFeedback
+
+Attention: Clerk collects telemetry data from its SDKs when connected to development instances.
+The data collected is used to inform Clerk's product roadmap.
+To learn more, including how to opt-out from the telemetry program, visit: https://clerk.com/docs/telemetry.
+
+ GET / 200 in 3.6s (next.js: 2.2s, proxy.ts: 329ms, application-code: 1084ms)
+ GET / 200 in 287ms (next.js: 32ms, proxy.ts: 26ms, application-code: 229ms)
+ GET / 200 in 468ms (next.js: 174ms, proxy.ts: 30ms, application-code: 264ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 392ms (next.js: 41ms, proxy.ts: 65ms, application-code: 287ms)
+ GET / 200 in 351ms (next.js: 40ms, proxy.ts: 31ms, application-code: 280ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET /studio 200 in 590ms (next.js: 406ms, proxy.ts: 34ms, application-code: 150ms)
+ GET /u/elenavance 200 in 1306ms (next.js: 251ms, proxy.ts: 22ms, generate-params: 919ms, application-code: 114ms)
+ POST /u/elenavance 200 in 335ms (next.js: 132ms, proxy.ts: 31ms, generate-params: 20ms, application-code: 153ms)
+  └─ ƒ invalidateCacheAction() in 14ms node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js
+ GET / 200 in 158ms (next.js: 39ms, proxy.ts: 25ms, application-code: 94ms)
+ GET / 200 in 169ms (next.js: 51ms, proxy.ts: 15ms, application-code: 103ms)
+ GET /studio 200 in 366ms (next.js: 138ms, proxy.ts: 21ms, application-code: 208ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET /studio/settings 200 in 373ms (next.js: 239ms, proxy.ts: 24ms, application-code: 110ms)
+ GET / 200 in 172ms (next.js: 54ms, proxy.ts: 27ms, application-code: 91ms)
+✓ Compiled in 904ms
+ GET / 200 in 402ms (next.js: 202ms, proxy.ts: 36ms, application-code: 164ms)
+ GET / 200 in 3.5s (next.js: 140ms, proxy.ts: 3.2s, application-code: 94ms)
+ GET / 200 in 350ms (next.js: 36ms, proxy.ts: 23ms, application-code: 291ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 628ms (next.js: 162ms, proxy.ts: 88ms, application-code: 379ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET /studio 200 in 457ms (next.js: 324ms, proxy.ts: 27ms, application-code: 106ms)
+ GET /u/elenavance 200 in 560ms (next.js: 314ms, proxy.ts: 31ms, generate-params: 22ms, application-code: 194ms)
+ POST /u/elenavance 200 in 273ms (next.js: 47ms, proxy.ts: 39ms, generate-params: 28ms, application-code: 159ms)
+  └─ ƒ invalidateCacheAction() in 12ms node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js
+ GET / 200 in 149ms (next.js: 26ms, proxy.ts: 28ms, application-code: 94ms)
+ GET / 200 in 175ms (next.js: 30ms, proxy.ts: 28ms, application-code: 116ms)
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+[browser] ./src/app/layout.tsx:30:3
+Error: 'const' declarations must be initialized
+   28 |       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neu...
+   29 |   },
+>  30 |   elements: {
+      |   ^^^^^^^^^^
+>  31 |     card: {
+      | ^^^^^^^^^^^
+>  32 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  33 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  34 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  35 |       boxShadow: "none",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  36 |     },
+      | ^^^^^^
+>  37 |     headerTitle: {
+      | ^^^^^^^^^^^^^^^^^^
+>  38 |       fontFamily: 'Georgia, "Times New Roman", serif',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |       fontWeight: "400",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  40 |       fontSize: "24px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |     },
+      | ^^^^^^
+>  43 |     headerSubtitle: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  44 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  45 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  46 |     },
+      | ^^^^^^
+>  47 |     socialButtonsBlockButton: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  48 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  49 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  50 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  51 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  52 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  53 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  54 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  55 |     },
+      | ^^^^^^
+>  56 |     socialButtonsBlockButtonText: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  57 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  59 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |     },
+      | ^^^^^^
+>  62 |     dividerLine: {
+      | ^^^^^^^^^^^^^^^^^^
+>  63 |       background: "#E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  64 |     },
+      | ^^^^^^
+>  65 |     dividerText: {
+      | ^^^^^^^^^^^^^^^^^^
+>  66 |       background: "#FFFFFF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  67 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  71 |     },
+      | ^^^^^^
+>  72 |     formFieldLabel: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  73 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  74 |       fontSize: "10px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  75 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |       letterSpacing: "0.1em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  77 |     },
+      | ^^^^^^
+>  78 |     formFieldInput: {
+      | ^^^^^^^^^^^^^^^^^^^^^
+>  79 |       background: "#FAF8F5",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |       border: "1px solid #E7E4DF",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |       color: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |     },
+      | ^^^^^^
+>  85 |     formButtonPrimary: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |       background: "#141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  87 |       border: "1px solid #141413",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  88 |       borderRadius: "0px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  89 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  90 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |       fontSize: "12px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |       fontWeight: "500",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     },
+      | ^^^^^^
+>  94 |     footerAction: {
+      | ^^^^^^^^^^^^^^^^^^^
+>  95 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |     },
+      | ^^^^^^
+>  98 |     footerActionLink: {
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |       color: "#C25E3E",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     },
+      | ^^^^^^
+> 104 |     backButton: {
+      | ^^^^^^^^^^^^^^^^^
+> 105 |       color: "#716E68",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |       textTransform: "uppercase",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |       letterSpacing: "0.05em",
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 108 |       fontSize: "11px",
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |     },
+      | ^^^^^^
+> 110 |   },
+      | ^^^
+  111 | };
+  112 |
+  113 | export default function RootLayout({
+
+Parsing ecmascript source code failed 
+✓ Compiled in 5.1s
+ GET / 200 in 2.5s (next.js: 2.1s, proxy.ts: 163ms, application-code: 198ms)
+ GET / 200 in 6.6s (next.js: 4.2s, proxy.ts: 581ms, application-code: 1781ms)
+ GET / 200 in 6.7s (next.js: 3.5s, proxy.ts: 540ms, application-code: 2.6s)
+ GET / 200 in 2.2s (next.js: 1061ms, proxy.ts: 457ms, application-code: 726ms)
+ GET / 200 in 2.2s (next.js: 923ms, proxy.ts: 456ms, application-code: 849ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 558ms (next.js: 82ms, proxy.ts: 41ms, application-code: 435ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 998ms (next.js: 177ms, proxy.ts: 168ms, application-code: 653ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 508ms (next.js: 55ms, proxy.ts: 43ms, application-code: 410ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+✓ Compiled in 2.5s
+ GET / 200 in 1067ms (next.js: 354ms, proxy.ts: 91ms, application-code: 622ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET / 200 in 855ms (next.js: 104ms, proxy.ts: 102ms, application-code: 649ms)
+ GET / 200 in 544ms (next.js: 40ms, proxy.ts: 30ms, application-code: 474ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)

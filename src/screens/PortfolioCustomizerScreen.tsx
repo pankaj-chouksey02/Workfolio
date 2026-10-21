@@ -17,7 +17,7 @@ export interface TemplatePreset {
   id: string;
   name: string;
   craftSubhead: string;
-  categoryTag: 'Ceramics' | 'Textiles' | 'Metal' | 'Wood' | 'Heritage Arts' | 'Painting';
+  categoryTag: 'Ceramics' | 'Textiles' | 'Metal' | 'Wood' | 'Heritage Arts' | 'Painting' | 'Sculpture';
   canvasColor: 'bone' | 'linen' | 'multani' | 'sandalwood' | 'terracotta' | 'indigo' | 'basalt' | 'sandstone' | 'forest' | 'teak';
   typography: 'cormorant' | 'playfair' | 'cinzel' | 'syne' | 'space' | 'baskerville' | 'bodoni';
   archetype: 'monograph' | 'grid' | 'story' | 'masonry' | 'split';

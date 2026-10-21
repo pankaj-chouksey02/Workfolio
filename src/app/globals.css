@@ -46,6 +46,12 @@ body {
   --text: #f3f2f0;
 }
 
+/* Clerk renders a noisy dev-mode overlay strip around its badge inside auth
+   modals (development builds only). Hide the pattern; keep the notice text. */
+[data-clerk-dev-mode-overlay] {
+  display: none !important;
+}
+
 /* reduced motion helper: when set, remove transitions/animations in preview */
 .reduced-motion * {
   transition-duration: 0ms !important;
