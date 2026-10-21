@@ -1440,3 +1440,11 @@ Parsing ecmascript source code failed
  GET / 200 in 855ms (next.js: 104ms, proxy.ts: 102ms, application-code: 649ms)
  GET / 200 in 544ms (next.js: 40ms, proxy.ts: 30ms, application-code: 474ms)
 [browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+ GET /studio 200 in 1241ms (next.js: 662ms, proxy.ts: 44ms, application-code: 536ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)
+✓ Compiled in 6.3s
+✓ Compiled in 859ms
+✓ Compiled in 991ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 1783ms (next.js: 406ms, proxy.ts: 181ms, application-code: 1197ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://oriented-phoenix-4696.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:40:1032)

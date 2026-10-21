@@ -1657,7 +1657,9 @@ export default function PortfolioCustomizerScreen({ onNavigate }: PortfolioCusto
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F1EA] flex flex-col overflow-hidden text-[#141413]">
+    // Height capped to the window below the fixed studio header (h-16) so the
+    // workspace never grows past the viewport — preview + controls scroll internally.
+    <div className="h-[calc(100vh-4rem)] bg-[#F4F1EA] flex flex-col overflow-hidden text-[#141413]">
       
       {/* ROW 1: ACTIVE WORKSPACE & GLOBAL STATUS BAR */}
       <div className="h-10 bg-white border-b border-[#E7E4DF] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">

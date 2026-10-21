@@ -33,7 +33,7 @@ export default function Header({ currentPath }: HeaderProps) {
 
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E7E4DF]">
-      <div className="h-20 w-full max-w-[1440px] mx-auto px-5 md:px-12 lg:px-16 flex items-center justify-between">
+      <div className="h-20 w-full max-w-360 mx-auto px-5 md:px-12 lg:px-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link
             href="/"
